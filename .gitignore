@@ -46,3 +46,6 @@ captures/
 
 # Postgres data (docker compose volume mounts, if any)
 data/
+
+# Local blob storage (LocalFileStorageService default root: server/var/storage)
+var/

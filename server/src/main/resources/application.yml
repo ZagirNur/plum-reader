@@ -5,6 +5,11 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/plum_reader}
     username: ${DB_USERNAME:plum}
     password: ${DB_PASSWORD:plum}
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: ${PLUM_UPLOAD_MAX_FILE_SIZE:50MB}
+      max-request-size: ${PLUM_UPLOAD_MAX_REQUEST_SIZE:50MB}
 
 management:
   endpoints:
@@ -22,3 +27,7 @@ plum:
     # Must be >= 32 bytes (HS256). Generate: openssl rand -base64 48
     secret: ${PLUM_JWT_SECRET:dev-only-do-not-use-in-production-replace-me-with-real-secret}
     expiration-minutes: ${PLUM_JWT_EXPIRATION_MINUTES:60}
+  cors:
+    allowed-origins: ${PLUM_CORS_ALLOWED_ORIGINS:*}
+  storage:
+    root: ${PLUM_STORAGE_ROOT:./var/storage}
