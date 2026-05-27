@@ -28,8 +28,11 @@ class UserBookRepository(private val jdbc: JdbcTemplate) {
         )
     }
 
-    /** All books in the user's library, newest first. */
-    fun listForUser(userId: Long): List<UserLibraryEntry> = jdbc.query(
+    /**
+     * Up to [limit] newest books in the user's library. The hard server-side
+     * cap defends the JSON response size until cursor pagination is wired in.
+     */
+    fun listForUser(userId: Long, limit: Int = 200): List<UserLibraryEntry> = jdbc.query(
         """
         SELECT b.id, b.title, b.author, b.language, b.owner_id, b.storage_key,
                b.size_bytes, b.sha256, b.status, b.page_count, b.error,
@@ -39,9 +42,10 @@ class UserBookRepository(private val jdbc: JdbcTemplate) {
         JOIN books b ON b.id = ub.book_id
         WHERE ub.user_id = ?
         ORDER BY ub.added_at DESC, b.id DESC
+        LIMIT ?
         """.trimIndent(),
         LIBRARY_ROW_MAPPER,
-        userId,
+        userId, limit,
     )
 
     /** Fetch one library entry. `null` if the book is not in the user's library. */
