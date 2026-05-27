@@ -1,10 +1,9 @@
 package com.plum.reader
 
-import org.springframework.boot.test.context.SpringBootTest
+import com.plum.reader.support.AbstractIntegrationTest
 import kotlin.test.Test
 
-@SpringBootTest
-class PlumReaderApplicationTests {
+class PlumReaderApplicationTests : AbstractIntegrationTest() {
 
     @Test
     fun contextLoads() {
