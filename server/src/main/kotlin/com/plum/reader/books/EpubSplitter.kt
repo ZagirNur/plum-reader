@@ -1,14 +1,11 @@
 package com.plum.reader.books
 
+import com.plum.reader.books.EpubArchive.OPF_NS
 import org.slf4j.LoggerFactory
-import org.w3c.dom.Document
 import org.w3c.dom.Element
-import org.xml.sax.InputSource
-import java.io.ByteArrayInputStream
-import java.io.InputStream
-import java.util.zip.ZipInputStream
-import javax.xml.XMLConstants
-import javax.xml.parsers.DocumentBuilderFactory
+import org.w3c.dom.Node
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 /**
  * A single rendered page extracted from the EPUB spine.
@@ -23,37 +20,29 @@ data class EpubPage(
 )
 
 /**
- * Splits an EPUB into spine-ordered pages. Reuses the same zip-bomb and
- * XXE-safe parsing posture as [EpubInspector].
+ * Splits an EPUB into spine-ordered pages. ZIP / XML safety guarantees come
+ * from [EpubArchive]; this object owns OPF-specific logic only.
+ *
+ * Note: one "page" here = one spine XHTML document, not a UI-paginated screen.
+ * Real reader pagination happens client-side or in a later worker.
  */
 object EpubSplitter {
     private val log = LoggerFactory.getLogger(javaClass)
-
-    private const val MAX_TOTAL_UNCOMPRESSED_BYTES: Long = 200L * 1024 * 1024
-    private const val MAX_ENTRIES: Int = 10_000
-    private const val MAX_XML_BYTES: Int = 5 * 1024 * 1024
-    private const val OPF_NS = "http://www.idpf.org/2007/opf"
-    private const val OCF_NS = "urn:oasis:names:tc:opendocument:xmlns:container"
     private val TAG_STRIPPER = Regex("<[^>]+>")
 
     fun split(bytes: ByteArray): List<EpubPage> {
-        if (bytes.size < 4 || bytes[0] != 'P'.code.toByte() || bytes[1] != 'K'.code.toByte()) {
-            throw InvalidEpubException("not a ZIP archive (missing PK header)")
-        }
-        val entries = readZipEntries(bytes)
+        EpubArchive.assertZipHeader(bytes)
+        val entries = EpubArchive.readZipEntries(bytes)
         val mimetype = entries["mimetype"]?.toString(Charsets.US_ASCII)?.trim()
         if (mimetype != "application/epub+zip") {
             throw InvalidEpubException("mimetype entry missing or wrong: $mimetype")
         }
         val containerBytes = entries["META-INF/container.xml"]
             ?: throw InvalidEpubException("META-INF/container.xml missing")
-        if (containerBytes.size > MAX_XML_BYTES) {
-            throw InvalidEpubException("container.xml exceeds size limit")
-        }
-        val opfPath = parseContainer(containerBytes)
+        val opfPath = EpubArchive.parseContainer(containerBytes)
         val opfBytes = entries[opfPath]
             ?: throw InvalidEpubException("OPF package missing at $opfPath")
-        if (opfBytes.size > MAX_XML_BYTES) {
+        if (opfBytes.size > EpubArchive.MAX_XML_BYTES) {
             throw InvalidEpubException("OPF exceeds size limit")
         }
         val opfDir = opfPath.substringBeforeLast('/', missingDelimiterValue = "")
@@ -61,9 +50,12 @@ object EpubSplitter {
 
         val pages = ArrayList<EpubPage>(spine.size)
         spine.forEachIndexed { idx, idref ->
-            val href = manifest[idref]
+            val hrefRaw = manifest[idref]
                 ?: throw InvalidEpubException("spine itemref '$idref' not in manifest")
-            val resolved = if (opfDir.isEmpty()) href else "$opfDir/$href"
+            // Strip fragment (#section) and URL-decode (%20 etc).
+            val hrefNoFrag = hrefRaw.substringBefore('#')
+            val href = URLDecoder.decode(hrefNoFrag, StandardCharsets.UTF_8)
+            val resolved = resolveHref(opfDir, href)
             val normalized = normalizeZipPath(resolved)
             val pageBytes = entries[normalized]
                 ?: throw InvalidEpubException("spine item not in archive: $normalized")
@@ -77,82 +69,56 @@ object EpubSplitter {
         return pages
     }
 
+    /**
+     * Find `<package>/<manifest><item/></manifest>` and `<package>/<spine><itemref/></spine>`
+     * scoped to their parents — defends against custom `<opf:item>` elements
+     * nested elsewhere in the document (e.g. `<collection>` extensions).
+     */
     private fun parseOpf(bytes: ByteArray): Pair<Map<String, String>, List<String>> {
-        val doc = parseSafeXml(ByteArrayInputStream(bytes))
+        val doc = EpubArchive.parseSafeXml(bytes.inputStream())
+        val manifestEl = doc.getElementsByTagNameNS(OPF_NS, "manifest").item(0) as? Element
+            ?: throw InvalidEpubException("OPF has no <manifest>")
+        val spineEl = doc.getElementsByTagNameNS(OPF_NS, "spine").item(0) as? Element
+            ?: throw InvalidEpubException("OPF has no <spine>")
+
         val manifest = mutableMapOf<String, String>()
-        val manifestEls = doc.getElementsByTagNameNS(OPF_NS, "item")
-        for (i in 0 until manifestEls.length) {
-            val el = manifestEls.item(i) as Element
-            val id = el.getAttribute("id")
-            val href = el.getAttribute("href")
+        for (item in manifestEl.childElements(OPF_NS, "item")) {
+            val id = item.getAttribute("id")
+            val href = item.getAttribute("href")
             if (id.isNotEmpty() && href.isNotEmpty()) manifest[id] = href
         }
         val spine = mutableListOf<String>()
-        val spineEls = doc.getElementsByTagNameNS(OPF_NS, "itemref")
-        for (i in 0 until spineEls.length) {
-            val el = spineEls.item(i) as Element
-            val linear = el.getAttribute("linear")
+        for (itemref in spineEl.childElements(OPF_NS, "itemref")) {
             // EPUB spec: linear="no" items are auxiliary; skip them.
-            if (linear == "no") continue
-            val idref = el.getAttribute("idref")
+            if (itemref.getAttribute("linear") == "no") continue
+            val idref = itemref.getAttribute("idref")
             if (idref.isNotEmpty()) spine.add(idref)
         }
         return manifest to spine
     }
 
-    private fun parseContainer(bytes: ByteArray): String {
-        val doc = parseSafeXml(ByteArrayInputStream(bytes))
-        val rootfiles = doc.getElementsByTagNameNS(OCF_NS, "rootfile")
-        if (rootfiles.length == 0) throw InvalidEpubException("container.xml has no rootfile element")
-        val first = rootfiles.item(0) as Element
-        val fullPath = first.getAttribute("full-path")
-        if (fullPath.isNullOrBlank()) throw InvalidEpubException("rootfile has no full-path")
-        return fullPath
-    }
-
-    private fun readZipEntries(bytes: ByteArray): Map<String, ByteArray> {
-        val out = mutableMapOf<String, ByteArray>()
-        var entryCount = 0
-        var totalUncompressed = 0L
-        ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
-            var entry = zip.nextEntry
-            while (entry != null) {
-                if (++entryCount > MAX_ENTRIES) {
-                    throw InvalidEpubException("archive has too many entries (>$MAX_ENTRIES)")
-                }
-                if (!entry.isDirectory) {
-                    val data = readBounded(zip, MAX_TOTAL_UNCOMPRESSED_BYTES - totalUncompressed)
-                    totalUncompressed += data.size
-                    if (out.putIfAbsent(entry.name, data) != null) {
-                        throw InvalidEpubException("duplicate ZIP entry: ${entry.name}")
-                    }
-                }
-                entry = zip.nextEntry
+    private fun Element.childElements(ns: String, localName: String): List<Element> {
+        val out = mutableListOf<Element>()
+        val kids = childNodes
+        for (i in 0 until kids.length) {
+            val n = kids.item(i)
+            if (n.nodeType == Node.ELEMENT_NODE && n.localName == localName && n.namespaceURI == ns) {
+                out.add(n as Element)
             }
         }
         return out
     }
 
-    private fun readBounded(input: InputStream, remaining: Long): ByteArray {
-        if (remaining <= 0) throw InvalidEpubException("archive exceeds uncompressed size limit")
-        val buf = ByteArray(8 * 1024)
-        val out = java.io.ByteArrayOutputStream()
-        var left = remaining
-        while (true) {
-            val n = input.read(buf, 0, minOf(buf.size.toLong(), left + 1).toInt())
-            if (n < 0) break
-            if (n.toLong() > left) {
-                throw InvalidEpubException("archive exceeds uncompressed size limit ($MAX_TOTAL_UNCOMPRESSED_BYTES bytes)")
-            }
-            out.write(buf, 0, n)
-            left -= n
-        }
-        return out.toByteArray()
+    /** Resolve href against OPF directory; absolute path (`/foo`) is rooted at archive top. */
+    private fun resolveHref(opfDir: String, href: String): String = when {
+        href.startsWith("/") -> href.removePrefix("/")
+        opfDir.isEmpty() -> href
+        else -> "$opfDir/$href"
     }
 
-    /** Resolve `a/b/../c.xhtml` → `a/c.xhtml`; reject anything trying to escape the archive root. */
+    /** Resolve `a/b/../c.xhtml` → `a/c.xhtml`; reject anything escaping the archive root. */
     private fun normalizeZipPath(path: String): String {
-        val parts = path.split('/').toMutableList()
+        val parts = path.split('/')
         val out = ArrayDeque<String>()
         for (p in parts) {
             when (p) {
@@ -167,22 +133,7 @@ object EpubSplitter {
         return out.joinToString("/")
     }
 
-    /** Approximate plain-text length: strip tags, drop runs of whitespace. */
+    /** Approximate plain-text length: strip tags, collapse whitespace runs. */
     private fun plainTextLength(xhtml: String): Int =
         TAG_STRIPPER.replace(xhtml, " ").replace(Regex("\\s+"), " ").trim().length
-
-    private fun parseSafeXml(input: InputStream): Document {
-        val factory = DocumentBuilderFactory.newInstance().apply {
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            setFeature("http://xml.org/sax/features/external-general-entities", false)
-            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-            setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "")
-            setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "")
-            isXIncludeAware = false
-            isExpandEntityReferences = false
-            isNamespaceAware = true
-        }
-        return factory.newDocumentBuilder().parse(InputSource(input))
-    }
 }
