@@ -13,7 +13,7 @@ build/
 out/
 *.class
 *.jar
-!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 .kotlin/
 
 # Python
