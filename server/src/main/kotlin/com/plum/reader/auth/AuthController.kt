@@ -12,10 +12,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1")
-class AuthController(
-    private val authService: AuthService,
-    private val users: UserRepository,
-) {
+class AuthController(private val authService: AuthService) {
 
     @PostMapping("/auth/register")
     fun register(@Valid @RequestBody req: RegisterRequest): ResponseEntity<AuthResponse> =
@@ -26,8 +23,6 @@ class AuthController(
         authService.login(req)
 
     @GetMapping("/me")
-    fun me(@AuthenticationPrincipal principal: JwtPrincipal): MeResponse {
-        val user = users.findById(principal.userId) ?: throw InvalidCredentialsException()
-        return MeResponse(user.id, user.email, user.name)
-    }
+    fun me(@AuthenticationPrincipal principal: JwtPrincipal): MeResponse =
+        MeResponse(principal.userId, principal.email, principal.name)
 }

@@ -5,31 +5,45 @@ import io.jsonwebtoken.security.SignatureException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 
 class JwtTokenProviderTest {
 
     private val secret = "0".repeat(48)
-    private val provider = JwtTokenProvider(secret = secret, expirationMinutes = 60)
+    private val provider = JwtTokenProvider(
+        JwtProperties(secret = secret, expirationMinutes = 60, clockSkewSeconds = 0),
+    )
 
     @Test
     fun `issue then parse returns the same principal`() {
-        val token = provider.issue(userId = 42, email = "alice@example.com")
+        val token = provider.issue(userId = 42, email = "alice@example.com", name = "Alice")
         val principal = provider.parse(token)
         assertEquals(42, principal.userId)
         assertEquals("alice@example.com", principal.email)
+        assertEquals("Alice", principal.name)
+    }
+
+    @Test
+    fun `null name survives round-trip`() {
+        val token = provider.issue(userId = 7, email = "x@x", name = null)
+        assertNull(provider.parse(token).name)
     }
 
     @Test
     fun `parsing with wrong secret fails`() {
-        val token = provider.issue(userId = 1, email = "x@x")
-        val other = JwtTokenProvider(secret = "1".repeat(48), expirationMinutes = 60)
+        val token = provider.issue(userId = 1, email = "x@x", name = null)
+        val other = JwtTokenProvider(
+            JwtProperties(secret = "1".repeat(48), expirationMinutes = 60),
+        )
         assertFailsWith<SignatureException> { other.parse(token) }
     }
 
     @Test
     fun `expired token fails`() {
-        val expired = JwtTokenProvider(secret = secret, expirationMinutes = -1)
-        val token = expired.issue(userId = 1, email = "x@x")
+        val expired = JwtTokenProvider(
+            JwtProperties(secret = secret, expirationMinutes = -1, clockSkewSeconds = 0),
+        )
+        val token = expired.issue(userId = 1, email = "x@x", name = null)
         assertFailsWith<ExpiredJwtException> { provider.parse(token) }
     }
 }

@@ -105,13 +105,24 @@ class AuthFlowIntegrationTest : AbstractIntegrationTest() {
         mockMvc.perform(
             post("/api/v1/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"email":"d@example.com","password":"correct12"}""")
+                .content("""{"email":"d@example.com","password":"correct-password-123"}""")
         ).andExpect(status().isCreated)
 
         mockMvc.perform(
             post("/api/v1/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""{"email":"d@example.com","password":"wrong-pass"}""")
+                .content("""{"email":"d@example.com","password":"wrong-pass-1234"}""")
+        )
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.error").value("invalid_credentials"))
+    }
+
+    @Test
+    fun `login with unknown email returns 401 invalid_credentials (no enumeration)`() {
+        mockMvc.perform(
+            post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""{"email":"nobody@example.com","password":"any-password-123"}""")
         )
             .andExpect(status().isUnauthorized)
             .andExpect(jsonPath("$.error").value("invalid_credentials"))

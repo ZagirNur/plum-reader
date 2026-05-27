@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size
 
 data class RegisterRequest(
     @field:Email @field:NotBlank val email: String,
-    @field:NotBlank @field:Size(min = 8, max = 128) val password: String,
+    @field:NotBlank @field:Size(min = 12, max = 128) val password: String,
     @field:Size(max = 200) val name: String? = null,
 )
 
