@@ -1,4 +1,4 @@
-package com.plum.reader.support
+package com.plum.reader.testsupport
 
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.DynamicPropertyRegistry
@@ -18,6 +18,7 @@ abstract class AbstractIntegrationTest {
             .withDatabaseName("plum_reader_test")
             .withUsername("plum")
             .withPassword("plum")
+            .withReuse(true)
 
         @DynamicPropertySource
         @JvmStatic

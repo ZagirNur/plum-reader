@@ -2,12 +2,9 @@ spring:
   application:
     name: plum-reader
   datasource:
-    url: jdbc:postgresql://localhost:5432/plum_reader
-    username: plum
-    password: plum
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/plum_reader}
+    username: ${DB_USERNAME:plum}
+    password: ${DB_PASSWORD:plum}
 
 management:
   endpoints:
@@ -18,4 +15,3 @@ management:
     health:
       probes:
         enabled: true
-      show-details: when_authorized
