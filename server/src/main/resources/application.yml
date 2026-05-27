@@ -28,6 +28,10 @@ plum:
     secret: ${PLUM_JWT_SECRET:dev-only-do-not-use-in-production-replace-me-with-real-secret}
     expiration-minutes: ${PLUM_JWT_EXPIRATION_MINUTES:60}
   cors:
-    allowed-origins: ${PLUM_CORS_ALLOWED_ORIGINS:*}
+    # Explicit allow-list. Default = empty (same-origin only).
+    # Set PLUM_CORS_ALLOWED_ORIGINS to a comma-separated list for production,
+    # e.g. "https://app.plumreader.local,https://m.plumreader.local".
+    # Use "*" only for dev/local (cannot be combined with credentials).
+    allowed-origins: ${PLUM_CORS_ALLOWED_ORIGINS:}
   storage:
     root: ${PLUM_STORAGE_ROOT:./var/storage}

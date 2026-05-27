@@ -14,6 +14,11 @@ import kotlin.io.path.exists
 /**
  * On-disk blob storage. Key layout: `<aa>/<bb>/<sha256>` (2+2 hex sharding to
  * keep directory fan-out reasonable). Same sha256 → same key → idempotent put.
+ *
+ * Production note: blobs live on local FS. For k8s deployment a PersistentVolume
+ * (PVC) is required, otherwise blobs vanish on pod reschedule while `books`
+ * rows still point to them. Tracked as follow-up: replace with an S3-backed
+ * `StorageService` impl before prod launch.
  */
 @Service
 class LocalFileStorageService(props: StorageProperties) : StorageService {
@@ -31,8 +36,13 @@ class LocalFileStorageService(props: StorageProperties) : StorageService {
         if (target.exists()) return key
         Files.createDirectories(target.parent)
         val tmp = target.resolveSibling(target.fileName.toString() + ".tmp-" + UUID.randomUUID())
-        Files.write(tmp, bytes)
-        Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        try {
+            Files.write(tmp, bytes)
+            Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (t: Throwable) {
+            Files.deleteIfExists(tmp)
+            throw t
+        }
         return key
     }
 
@@ -42,8 +52,13 @@ class LocalFileStorageService(props: StorageProperties) : StorageService {
         if (target.exists()) return key
         Files.createDirectories(target.parent)
         val tmp = target.resolveSibling(target.fileName.toString() + ".tmp-" + UUID.randomUUID())
-        Files.copy(input, tmp, StandardCopyOption.REPLACE_EXISTING)
-        Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        try {
+            Files.copy(input, tmp, StandardCopyOption.REPLACE_EXISTING)
+            Files.move(tmp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+        } catch (t: Throwable) {
+            Files.deleteIfExists(tmp)
+            throw t
+        }
         return key
     }
 
@@ -57,7 +72,12 @@ class LocalFileStorageService(props: StorageProperties) : StorageService {
     override fun openRead(storageKey: String): InputStream =
         Files.newInputStream(resolve(storageKey))
 
-    override fun exists(storageKey: String): Boolean = resolve(storageKey).exists()
+    /** Total — never throws. Path-traversal keys simply do not exist. */
+    override fun exists(storageKey: String): Boolean = try {
+        resolve(storageKey).exists()
+    } catch (_: IllegalArgumentException) {
+        false
+    }
 
     private fun keyFor(sha256: String): String {
         require(sha256.length == 64 && sha256.all { it in '0'..'9' || it in 'a'..'f' }) {
