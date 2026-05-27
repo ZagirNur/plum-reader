@@ -9,6 +9,7 @@ import com.plum.reader.books.InvalidEpubException
 import com.plum.reader.books.InvalidProgressException
 import com.plum.reader.books.PageNotFoundException
 import com.plum.reader.books.UnsupportedFileException
+import com.plum.reader.markup.WordNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -103,6 +104,15 @@ class GlobalExceptionHandler {
                 error = "book_not_ready",
                 message = "book ${ex.bookId} is in status ${ex.status}; wait for status=ready",
                 details = mapOf("status" to ex.status),
+            ),
+        )
+
+    @ExceptionHandler(WordNotFoundException::class)
+    fun handleWordNotFound(ex: WordNotFoundException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            ErrorResponse(
+                error = "word_not_found",
+                message = "word '${ex.word}' not found in book ${ex.bookId}",
             ),
         )
 }

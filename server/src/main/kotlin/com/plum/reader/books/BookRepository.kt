@@ -1,5 +1,6 @@
 package com.plum.reader.books
 
+import com.plum.reader.markup.MarkupStatus
 import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
@@ -51,6 +52,13 @@ class BookRepository(private val jdbc: JdbcTemplate) {
         )
     }
 
+    fun updateMarkupStatus(id: Long, status: MarkupStatus) {
+        jdbc.update(
+            "UPDATE books SET markup_status = ? WHERE id = ?",
+            status.value, id,
+        )
+    }
+
     private fun mapRow(rs: ResultSet): Book = Book(
         id = rs.getLong("id"),
         title = rs.getString("title"),
@@ -63,6 +71,7 @@ class BookRepository(private val jdbc: JdbcTemplate) {
         status = rs.getString("status"),
         pageCount = rs.getObject("page_count") as Int?,
         error = rs.getString("error"),
+        markupStatus = rs.getString("markup_status"),
         createdAt = rs.getTimestamp("created_at").toInstant(),
         updatedAt = rs.getTimestamp("updated_at").toInstant(),
     )
@@ -70,9 +79,8 @@ class BookRepository(private val jdbc: JdbcTemplate) {
     companion object {
         private const val SELECT = """
             SELECT id, title, author, language, owner_id, storage_key, size_bytes, sha256,
-                   status, page_count, error, created_at, updated_at
+                   status, page_count, error, markup_status, created_at, updated_at
             FROM books
         """
     }
 }
-

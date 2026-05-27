@@ -1,7 +1,22 @@
 package com.plum.reader.books
 
+import com.fasterxml.jackson.annotation.JsonValue
+import com.plum.reader.markup.MarkupStatus
 import jakarta.validation.constraints.Min
 import java.time.Instant
+
+/** Markup status as published to clients. */
+enum class MarkupStatusDto(@get:JsonValue val value: String) {
+    PENDING("pending"),
+    PROCESSING("processing"),
+    READY("ready"),
+    FAILED("failed");
+
+    companion object {
+        fun of(value: String): MarkupStatusDto = entries.firstOrNull { it.value == value }
+            ?: error("unknown markup status: $value")
+    }
+}
 
 /**
  * Summary entry for `GET /api/v1/books` — one per library entry.
@@ -21,6 +36,7 @@ data class BookSummary(
     val author: String?,
     val language: String?,
     val status: BookStatusDto,
+    val markupStatus: MarkupStatusDto,
     val pageCount: Int?,
     val lastPageIdx: Int?,
     val addedAt: Instant,
@@ -33,6 +49,7 @@ data class BookSummary(
             author = entry.book.author,
             language = entry.book.language,
             status = BookStatusDto.of(entry.book.status),
+            markupStatus = MarkupStatusDto.of(entry.book.markupStatus),
             pageCount = entry.book.pageCount,
             lastPageIdx = entry.lastPageIdx,
             addedAt = entry.addedAt,
@@ -56,6 +73,7 @@ data class BookDetailResponse(
     val author: String?,
     val language: String?,
     val status: BookStatusDto,
+    val markupStatus: MarkupStatusDto,
     val pageCount: Int?,
     val lastPageIdx: Int?,
     val sizeBytes: Long,
@@ -72,6 +90,7 @@ data class BookDetailResponse(
             author = entry.book.author,
             language = entry.book.language,
             status = BookStatusDto.of(entry.book.status),
+            markupStatus = MarkupStatusDto.of(entry.book.markupStatus),
             pageCount = entry.book.pageCount,
             lastPageIdx = entry.lastPageIdx,
             sizeBytes = entry.book.sizeBytes,

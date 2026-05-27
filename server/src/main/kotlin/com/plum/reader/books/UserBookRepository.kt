@@ -35,7 +35,7 @@ class UserBookRepository(private val jdbc: JdbcTemplate) {
     fun listForUser(userId: Long, limit: Int = 200): List<UserLibraryEntry> = jdbc.query(
         """
         SELECT b.id, b.title, b.author, b.language, b.owner_id, b.storage_key,
-               b.size_bytes, b.sha256, b.status, b.page_count, b.error,
+               b.size_bytes, b.sha256, b.status, b.page_count, b.error, b.markup_status,
                b.created_at, b.updated_at,
                ub.added_at, ub.last_page_idx
         FROM user_books ub
@@ -53,7 +53,7 @@ class UserBookRepository(private val jdbc: JdbcTemplate) {
         jdbc.queryForObject(
             """
             SELECT b.id, b.title, b.author, b.language, b.owner_id, b.storage_key,
-                   b.size_bytes, b.sha256, b.status, b.page_count, b.error,
+                   b.size_bytes, b.sha256, b.status, b.page_count, b.error, b.markup_status,
                    b.created_at, b.updated_at,
                    ub.added_at, ub.last_page_idx
             FROM user_books ub
@@ -95,6 +95,7 @@ class UserBookRepository(private val jdbc: JdbcTemplate) {
                 status = rs.getString("status"),
                 pageCount = rs.getObject("page_count") as Int?,
                 error = rs.getString("error"),
+                markupStatus = rs.getString("markup_status"),
                 createdAt = rs.getTimestamp("created_at").toInstant(),
                 updatedAt = rs.getTimestamp("updated_at").toInstant(),
             )

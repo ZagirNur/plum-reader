@@ -85,8 +85,12 @@ class SplitWorker(
                 if (!jobs.markDone(job.id, workerId)) {
                     throw LockLostException(job.id, workerId)
                 }
+                // Chain: as soon as pages exist, enqueue the markup job.
+                // Inside the same tx — if we commit, the markup is queued;
+                // if we rollback (LockLost), nothing leaks.
+                jobs.enqueue(JobKind.MARKUP, book.id)
             }
-            log.info("split.done jobId={} bookId={} pages={}", job.id, book.id, epubPages.size)
+            log.info("split.done jobId={} bookId={} pages={} markup_enqueued=true", job.id, book.id, epubPages.size)
         } catch (ex: LockLostException) {
             // Page-write tx rolled back automatically. Other worker owns it now.
             log.warn("split.lock_lost jobId={} workerId={}", job.id, workerId)
@@ -138,7 +142,8 @@ class SplitWorker(
 @Configuration
 @EnableConfigurationProperties(WorkerProperties::class)
 class WorkerConfig(
-    private val worker: SplitWorker,
+    private val splitWorker: SplitWorker,
+    private val markupWorker: MarkupWorker,
     private val props: WorkerProperties,
 ) : SchedulingConfigurer {
     private val log = LoggerFactory.getLogger(javaClass)
@@ -148,8 +153,9 @@ class WorkerConfig(
             log.info("worker.disabled — no scheduled tasks registered")
             return
         }
-        registrar.addFixedDelayTask({ worker.poll() }, props.pollInterval)
-        registrar.addFixedDelayTask({ worker.sweepExpiredLocks() }, props.staleLockSweepInterval)
+        registrar.addFixedDelayTask({ splitWorker.poll() }, props.pollInterval)
+        registrar.addFixedDelayTask({ markupWorker.poll() }, props.pollInterval)
+        registrar.addFixedDelayTask({ splitWorker.sweepExpiredLocks() }, props.staleLockSweepInterval)
         log.info(
             "worker.scheduled poll={} sweep={} lockTimeout={} maxAttempts={}",
             props.pollInterval, props.staleLockSweepInterval, props.lockTimeout, props.maxAttempts,
