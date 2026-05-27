@@ -15,3 +15,10 @@ management:
     health:
       probes:
         enabled: true
+
+plum:
+  jwt:
+    # dev-only default. Override via PLUM_JWT_SECRET in any non-local env.
+    # Must be >= 32 bytes (HS256). Generate: openssl rand -base64 48
+    secret: ${PLUM_JWT_SECRET:dev-only-do-not-use-in-production-replace-me-with-real-secret}
+    expiration-minutes: ${PLUM_JWT_EXPIRATION_MINUTES:60}
