@@ -1,0 +1,48 @@
+# JetBrains / VS Code
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# JVM / Gradle
+.gradle/
+build/
+out/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.uv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / web
+node_modules/
+dist/
+.next/
+
+# Mobile
+DerivedData/
+*.xcuserstate
+.swiftpm/
+local.properties
+captures/
+
+# Env / local
+.env
+.env.local
+*.log
+
+# Postgres data (docker compose volume mounts, if any)
+data/
