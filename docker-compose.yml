@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: plum-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: plum_reader
+      POSTGRES_USER: plum
+      POSTGRES_PASSWORD: plum
+    ports:
+      - "5432:5432"
+    volumes:
+      - plum-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U plum -d plum_reader"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  plum-postgres-data:
