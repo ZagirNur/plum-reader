@@ -5,9 +5,9 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 class HealthController {
 
     @GetMapping("/health")
-    fun health(): Map<String, String> = mapOf("status" to "ok")
+    fun health(): HealthStatus = HealthStatus(status = "ok")
 }
