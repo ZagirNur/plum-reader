@@ -3,8 +3,11 @@ package com.plum.reader.common
 import com.plum.reader.auth.EmailAlreadyTakenException
 import com.plum.reader.auth.InvalidCredentialsException
 import com.plum.reader.books.BookNotFoundException
+import com.plum.reader.books.BookNotReadyException
 import com.plum.reader.books.FileTooLargeException
 import com.plum.reader.books.InvalidEpubException
+import com.plum.reader.books.InvalidProgressException
+import com.plum.reader.books.PageNotFoundException
 import com.plum.reader.books.UnsupportedFileException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -72,5 +75,34 @@ class GlobalExceptionHandler {
     fun handleBookNotFound(ex: BookNotFoundException): ResponseEntity<ErrorResponse> =
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(
             ErrorResponse(error = "book_not_found", message = "book ${ex.bookId} not found"),
+        )
+
+    @ExceptionHandler(PageNotFoundException::class)
+    fun handlePageNotFound(ex: PageNotFoundException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            ErrorResponse(
+                error = "page_not_found",
+                message = "page ${ex.pageIdx} in book ${ex.bookId} not found",
+            ),
+        )
+
+    @ExceptionHandler(InvalidProgressException::class)
+    fun handleInvalidProgress(ex: InvalidProgressException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+            ErrorResponse(
+                error = "invalid_progress",
+                message = "lastPageIdx ${ex.idx} out of bounds for book ${ex.bookId}",
+                details = mapOf("pageCount" to ex.pageCount.toString()),
+            ),
+        )
+
+    @ExceptionHandler(BookNotReadyException::class)
+    fun handleBookNotReady(ex: BookNotReadyException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+            ErrorResponse(
+                error = "book_not_ready",
+                message = "book ${ex.bookId} is in status ${ex.status}; wait for status=ready",
+                details = mapOf("status" to ex.status),
+            ),
         )
 }

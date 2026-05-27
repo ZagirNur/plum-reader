@@ -76,17 +76,3 @@ class BookRepository(private val jdbc: JdbcTemplate) {
     }
 }
 
-@Repository
-class UserBookRepository(private val jdbc: JdbcTemplate) {
-
-    /** Idempotent — duplicates collapse via ON CONFLICT DO NOTHING on (user_id, book_id). */
-    fun link(userId: Long, bookId: Long) {
-        jdbc.update(
-            """
-            INSERT INTO user_books(user_id, book_id) VALUES (?, ?)
-            ON CONFLICT (user_id, book_id) DO NOTHING
-            """.trimIndent(),
-            userId, bookId,
-        )
-    }
-}
