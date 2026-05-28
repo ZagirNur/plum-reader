@@ -1,0 +1,78 @@
+### register
+POST http://localhost:8080/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "supersecret-pass",
+  "name": "Alice"
+}
+
+> {%
+client.global.set("token", response.body.token);
+client.global.set("userId", response.body.user.id);
+%}
+
+###
+
+### register — duplicate email → 409
+POST http://localhost:8080/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "supersecret-pass",
+  "name": "Alice"
+}
+
+###
+
+### register — short password → 400 validation_failed
+POST http://localhost:8080/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "bob@example.com",
+  "password": "short"
+}
+
+###
+
+### login
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "supersecret-pass"
+}
+
+> {% client.global.set("token", response.body.token); %}
+
+###
+
+### login — wrong password → 401 invalid_credentials
+POST http://localhost:8080/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "wrong-pass-1234"
+}
+
+###
+
+### /me with token → 200
+GET http://localhost:8080/api/v1/me
+Authorization: Bearer {{token}}
+
+###
+
+### /me without token → 401 (empty body)
+GET http://localhost:8080/api/v1/me
+
+###
+
+### /me with garbage token → 401
+GET http://localhost:8080/api/v1/me
+Authorization: Bearer not-a-jwt

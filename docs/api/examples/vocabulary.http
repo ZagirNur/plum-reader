@@ -1,0 +1,28 @@
+### Top 20 words
+GET http://localhost:8080/api/v1/books/{{bookId}}/vocabulary?limit=20
+Authorization: Bearer {{token}}
+
+###
+
+### Top 10 starting from offset 50
+GET http://localhost:8080/api/v1/books/{{bookId}}/vocabulary?limit=10&offset=50
+Authorization: Bearer {{token}}
+
+###
+
+### Single word
+GET http://localhost:8080/api/v1/books/{{bookId}}/words/elizabeth
+Authorization: Bearer {{token}}
+
+###
+
+### Non-existent word → 404 word_not_found
+GET http://localhost:8080/api/v1/books/{{bookId}}/words/qwertyxyz
+Authorization: Bearer {{token}}
+
+###
+
+### Vocabulary before markup ready → 409 markup_not_ready
+# Replay this right after upload, before split+markup finish.
+GET http://localhost:8080/api/v1/books/{{bookId}}/vocabulary
+Authorization: Bearer {{token}}

@@ -1,0 +1,60 @@
+### Library list
+GET http://localhost:8080/api/v1/books
+Authorization: Bearer {{token}}
+
+###
+
+### Book detail
+GET http://localhost:8080/api/v1/books/{{bookId}}
+Authorization: Bearer {{token}}
+
+###
+
+### Page indexes
+GET http://localhost:8080/api/v1/books/{{bookId}}/pages
+Authorization: Bearer {{token}}
+
+###
+
+### First page
+GET http://localhost:8080/api/v1/books/{{bookId}}/pages/0
+Authorization: Bearer {{token}}
+
+###
+
+### Out-of-range page → 404 page_not_found
+GET http://localhost:8080/api/v1/books/{{bookId}}/pages/9999
+Authorization: Bearer {{token}}
+
+###
+
+### Save progress at page 5
+PATCH http://localhost:8080/api/v1/books/{{bookId}}/progress
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "lastPageIdx": 5 }
+
+###
+
+### Negative progress → 400 validation_failed
+PATCH http://localhost:8080/api/v1/books/{{bookId}}/progress
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "lastPageIdx": -1 }
+
+###
+
+### Progress >= pageCount → 400 invalid_progress
+PATCH http://localhost:8080/api/v1/books/{{bookId}}/progress
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "lastPageIdx": 999999 }
+
+###
+
+### Foreign book → 404 (404 not 403 so existence is hidden)
+GET http://localhost:8080/api/v1/books/999999
+Authorization: Bearer {{token}}
