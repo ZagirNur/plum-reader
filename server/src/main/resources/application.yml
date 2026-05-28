@@ -49,3 +49,12 @@ plum:
     max-attempts: ${PLUM_WORKER_MAX_ATTEMPTS:5}
     retry-backoff-base: ${PLUM_WORKER_RETRY_BACKOFF_BASE:10s}
     retry-backoff-max: ${PLUM_WORKER_RETRY_BACKOFF_MAX:1h}
+  translate:
+    provider: ${PLUM_TRANSLATE_PROVIDER:gemini}
+    context-radius: ${PLUM_TRANSLATE_CONTEXT_RADIUS:250}
+    default-target-language: ${PLUM_TRANSLATE_DEFAULT_LANG:ru}
+    gemini:
+      api-key: ${PLUM_GEMINI_API_KEY:}
+      model: ${PLUM_GEMINI_MODEL:gemini-2.5-flash}
+      base-url: ${PLUM_GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta}
+      timeout-seconds: ${PLUM_GEMINI_TIMEOUT_SECONDS:15}

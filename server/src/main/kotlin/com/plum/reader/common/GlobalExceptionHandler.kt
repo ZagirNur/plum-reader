@@ -11,6 +11,8 @@ import com.plum.reader.books.PageNotFoundException
 import com.plum.reader.books.UnsupportedFileException
 import com.plum.reader.markup.MarkupNotReadyException
 import com.plum.reader.markup.WordNotFoundException
+import com.plum.reader.translate.TranslationException
+import com.plum.reader.translate.TranslationProviderException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -124,6 +126,29 @@ class GlobalExceptionHandler {
                 error = "markup_not_ready",
                 message = "book ${ex.bookId} markup is ${ex.markupStatus}",
                 details = mapOf("markupStatus" to ex.markupStatus),
+            ),
+        )
+
+    @ExceptionHandler(TranslationException::class)
+    fun handleTranslation(ex: TranslationException): ResponseEntity<ErrorResponse> {
+        val status = when (ex.code) {
+            "page_not_found"               -> HttpStatus.NOT_FOUND
+            "invalid_range"                -> HttpStatus.BAD_REQUEST
+            "unsupported_target_language"  -> HttpStatus.BAD_REQUEST
+            else                           -> HttpStatus.BAD_REQUEST
+        }
+        return ResponseEntity.status(status).body(
+            ErrorResponse(error = ex.code, message = ex.message ?: ex.code),
+        )
+    }
+
+    @ExceptionHandler(TranslationProviderException::class)
+    fun handleTranslationProvider(ex: TranslationProviderException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(
+            ErrorResponse(
+                error = "translation_provider_error",
+                message = "LLM provider returned an error",
+                details = mapOf("providerStatus" to ex.providerStatus.toString()),
             ),
         )
 }

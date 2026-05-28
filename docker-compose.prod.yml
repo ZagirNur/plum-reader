@@ -52,6 +52,11 @@ services:
       PLUM_CORS_ALLOWED_ORIGINS: ${PLUM_CORS_ALLOWED_ORIGINS:-}
       # Storage (mounted volume below)
       PLUM_STORAGE_ROOT: /var/plum-storage
+      # Translation (LLM-based contextual word translation)
+      PLUM_TRANSLATE_PROVIDER: ${PLUM_TRANSLATE_PROVIDER:-gemini}
+      PLUM_GEMINI_API_KEY: ${PLUM_GEMINI_API_KEY:-}
+      PLUM_GEMINI_MODEL: ${PLUM_GEMINI_MODEL:-gemini-2.5-flash}
+      PLUM_TRANSLATE_DEFAULT_LANG: ${PLUM_TRANSLATE_DEFAULT_LANG:-ru}
       # Spring profile
       SPRING_PROFILES_ACTIVE: prod
     volumes:
