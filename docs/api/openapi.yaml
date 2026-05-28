@@ -1,0 +1,482 @@
+openapi: 3.1.0
+info:
+  title: Plum Reader API
+  version: "1.0"
+  description: |
+    Plum Reader — Spring Boot + Kotlin backend. EPUB ingest → spine split →
+    vocabulary index → reader API.
+
+    See `docs/api/` markdown files for narrative docs (auth, pipeline,
+    state machines, error registry, DTO null-contract).
+  contact:
+    name: Plum Reader
+servers:
+  - url: http://localhost:8080
+    description: local dev
+  - url: https://api.plumreader.example
+    description: prod (placeholder)
+tags:
+  - name: auth
+  - name: books
+  - name: pages
+  - name: progress
+  - name: vocabulary
+  - name: health
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [health]
+      summary: Public liveness ping for bots/mobile.
+      security: []
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, example: ok }
+
+  /api/v1/auth/register:
+    post:
+      tags: [auth]
+      security: []
+      summary: Register a new user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "409":
+          description: email already taken
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      security: []
+      summary: Exchange email+password for a JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthResponse" }
+        "400": { $ref: "#/components/responses/ValidationFailed" }
+        "401":
+          description: invalid_credentials
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/v1/me:
+    get:
+      tags: [auth]
+      summary: Current user.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/books/upload:
+    post:
+      tags: [books]
+      summary: Upload an EPUB. Enqueues the parsing pipeline.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: EPUB file (.epub, ≤ 50MB by default).
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              schema: { type: string }
+              description: "/api/v1/books/{id}"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "413":
+          description: file_too_large
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: unsupported_file | invalid_epub
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /api/v1/books:
+    get:
+      tags: [books]
+      summary: List books in the current user's library.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/books/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+    get:
+      tags: [books]
+      summary: Full detail for one book.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BookDetailResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/books/{id}/pages:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+    get:
+      tags: [pages]
+      summary: List of page indexes in spine order. 409 if status != ready.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PageIndexListResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/BookNotReady" }
+
+  /api/v1/books/{id}/pages/{idx}:
+    parameters:
+      - { name: id,  in: path, required: true, schema: { type: integer, format: int64 } }
+      - { name: idx, in: path, required: true, schema: { type: integer, minimum: 0 } }
+    get:
+      tags: [pages]
+      summary: Single page xhtml.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PageContentResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: book_not_found | page_not_found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409": { $ref: "#/components/responses/BookNotReady" }
+
+  /api/v1/books/{id}/progress:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
+    patch:
+      tags: [progress]
+      summary: Update reading position. 400 if out of bounds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProgressUpdateRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProgressResponse" }
+        "400":
+          description: validation_failed | invalid_progress
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/BookNotReady" }
+
+  /api/v1/books/{id}/vocabulary:
+    parameters:
+      - { name: id,     in: path,  required: true, schema: { type: integer, format: int64 } }
+      - { name: limit,  in: query, required: false, schema: { type: integer, default: 100, minimum: 1, maximum: 500 } }
+      - { name: offset, in: query, required: false, schema: { type: integer, default: 0,  minimum: 0 } }
+    get:
+      tags: [vocabulary]
+      summary: Top-N words by frequency in the book.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VocabularyResponse" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/MarkupNotReady" }
+
+  /api/v1/books/{id}/words/{word}:
+    parameters:
+      - { name: id,   in: path, required: true, schema: { type: integer, format: int64 } }
+      - { name: word, in: path, required: true, schema: { type: string } }
+    get:
+      tags: [vocabulary]
+      summary: One word's frequency in the book (case-insensitive lookup).
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WordEntry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: book_not_found | word_not_found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409": { $ref: "#/components/responses/MarkupNotReady" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: missing / invalid / expired JWT (empty body)
+    NotFound:
+      description: book_not_found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    ValidationFailed:
+      description: validation_failed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    BookNotReady:
+      description: book_not_ready — wait for status=ready
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    MarkupNotReady:
+      description: markup_not_ready — wait for markup_status=ready
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  schemas:
+    BookStatus:
+      type: string
+      enum: [uploaded, processing, ready, failed]
+    MarkupStatus:
+      type: string
+      enum: [pending, processing, ready, failed]
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:    { type: string, format: email }
+        password: { type: string, minLength: 12, maxLength: 128 }
+        name:     { type: string, maxLength: 200, nullable: true }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:    { type: string, format: email }
+        password: { type: string }
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token: { type: string, description: JWT HS256 }
+        user:  { $ref: "#/components/schemas/UserResponse" }
+
+    UserResponse:
+      type: object
+      required: [id, email]
+      properties:
+        id:    { type: integer, format: int64 }
+        email: { type: string, format: email }
+        name:  { type: string, nullable: true }
+
+    UploadResponse:
+      type: object
+      required: [book, deduplicated]
+      properties:
+        book:         { $ref: "#/components/schemas/BookResponse" }
+        deduplicated:
+          type: boolean
+          description: true if a book with this sha256 was already in the system; jobId will be null in that case.
+        jobId:
+          type: integer
+          format: int64
+          nullable: true
+
+    BookResponse:
+      type: object
+      required: [id, status, sizeBytes, sha256, createdAt, updatedAt]
+      properties:
+        id:        { type: integer, format: int64 }
+        title:     { type: string, nullable: true }
+        author:    { type: string, nullable: true }
+        language:  { type: string, nullable: true, description: "ISO 639-1 from EPUB DC, e.g. en, ru" }
+        status:    { $ref: "#/components/schemas/BookStatus" }
+        sizeBytes: { type: integer, format: int64 }
+        sha256:    { type: string, description: "64 lowercase hex chars" }
+        pageCount: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    BookSummary:
+      type: object
+      required: [id, status, markupStatus, addedAt, updatedAt]
+      properties:
+        id:           { type: integer, format: int64 }
+        title:        { type: string, nullable: true }
+        author:       { type: string, nullable: true }
+        language:     { type: string, nullable: true }
+        status:       { $ref: "#/components/schemas/BookStatus" }
+        markupStatus: { $ref: "#/components/schemas/MarkupStatus" }
+        pageCount:    { type: integer, nullable: true }
+        lastPageIdx:  { type: integer, nullable: true }
+        addedAt:      { type: string, format: date-time }
+        updatedAt:    { type: string, format: date-time }
+
+    BookDetailResponse:
+      allOf:
+        - $ref: "#/components/schemas/BookSummary"
+        - type: object
+          required: [sizeBytes, sha256, createdAt]
+          properties:
+            sizeBytes: { type: integer, format: int64 }
+            sha256:    { type: string }
+            error:     { type: string, nullable: true }
+            createdAt: { type: string, format: date-time }
+
+    BookListResponse:
+      type: object
+      required: [items, more]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/BookSummary" }
+        more:
+          type: boolean
+          description: soft hint — server-capped at LIMIT 200; switch to cursor pagination when this is true (TODO).
+
+    PageIndexListResponse:
+      type: object
+      required: [bookId, total, indexes]
+      properties:
+        bookId:  { type: integer, format: int64 }
+        total:   { type: integer }
+        indexes:
+          type: array
+          items: { type: integer }
+
+    PageContentResponse:
+      type: object
+      required: [bookId, idx, total, xhtml, textLen]
+      properties:
+        bookId:  { type: integer, format: int64 }
+        idx:     { type: integer }
+        total:   { type: integer }
+        xhtml:
+          type: string
+          description: "raw spine XHTML — render in sandboxed WebView; do NOT eval inline JS."
+        textLen: { type: integer }
+        prevIdx: { type: integer, nullable: true, description: "null on first page" }
+        nextIdx: { type: integer, nullable: true, description: "null on last page" }
+
+    ProgressUpdateRequest:
+      type: object
+      required: [lastPageIdx]
+      properties:
+        lastPageIdx:
+          type: integer
+          minimum: 0
+          description: "0-based index of the current page (resume point)."
+
+    ProgressResponse:
+      type: object
+      required: [bookId, lastPageIdx, updatedAt]
+      properties:
+        bookId:      { type: integer, format: int64 }
+        lastPageIdx: { type: integer }
+        updatedAt:   { type: string, format: date-time, description: "server wall-clock; use for last-write-wins on multi-device sync" }
+
+    VocabularyResponse:
+      type: object
+      required: [bookId, total, offset, limit, items]
+      properties:
+        bookId: { type: integer, format: int64 }
+        total:  { type: integer, description: "unique words in the book" }
+        offset: { type: integer }
+        limit:  { type: integer }
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/WordEntry" }
+
+    WordEntry:
+      type: object
+      required: [word, frequency]
+      properties:
+        word:      { type: string }
+        frequency: { type: integer }
+        rank:
+          type: integer
+          nullable: true
+          description: "1-based position in the top-frequency list. Null for single-word lookups."
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: "stable enum code — see docs/api/errors.md"
+        message:
+          type: string
+          description: "human-readable; do not parse"
+        details:
+          type: object
+          additionalProperties: { type: string }
+          nullable: true

@@ -1,0 +1,57 @@
+### Upload EPUB — 201 Created
+POST http://localhost:8080/api/v1/books/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=PlumBoundary
+
+--PlumBoundary
+Content-Disposition: form-data; name="file"; filename="pride.epub"
+Content-Type: application/epub+zip
+
+< /tmp/epubs/pride.epub
+--PlumBoundary--
+
+> {%
+client.global.set("bookId", response.body.book.id);
+%}
+
+###
+
+### Upload same EPUB again → 201 with deduplicated: true
+POST http://localhost:8080/api/v1/books/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=PlumBoundary
+
+--PlumBoundary
+Content-Disposition: form-data; name="file"; filename="pride.epub"
+Content-Type: application/epub+zip
+
+< /tmp/epubs/pride.epub
+--PlumBoundary--
+
+###
+
+### Upload wrong file → 422 invalid_epub
+POST http://localhost:8080/api/v1/books/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=PlumBoundary
+
+--PlumBoundary
+Content-Disposition: form-data; name="file"; filename="garbage.epub"
+Content-Type: application/epub+zip
+
+not actually an epub
+--PlumBoundary--
+
+###
+
+### Upload .pdf → 422 unsupported_file
+POST http://localhost:8080/api/v1/books/upload
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=PlumBoundary
+
+--PlumBoundary
+Content-Disposition: form-data; name="file"; filename="x.pdf"
+Content-Type: application/pdf
+
+%PDF-1.4
+--PlumBoundary--
