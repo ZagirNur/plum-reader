@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Plum Reader — iOS user flows</title>
+<style>
+:root {
+  --bg: #0f0f12;
+  --panel: #16161a;
+  --panel-2: #1c1c22;
+  --line: #2a2a32;
+  --text: #ececf0;
+  --muted: #9aa0aa;
+  --accent: #a855f7;
+  --accent-soft: #c084fc;
+  --green: #34d399;
+  --red: #f87171;
+  --amber: #fbbf24;
+  --blue: #60a5fa;
+  --screen: #fafafa;
+  --screen-2: #efeff4;
+  --screen-text: #1c1c1e;
+  --screen-text-2: #636366;
+  --screen-line: #d1d1d6;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif; }
+body { padding: 32px 24px 80px; }
+h1, h2, h3 { font-family: "SF Pro Display", -apple-system, system-ui, sans-serif; font-weight: 700; letter-spacing: -0.01em; }
+h1 { font-size: 28px; margin: 0 0 4px; }
+h2 { font-size: 18px; margin: 0; }
+h3 { font-size: 14px; margin: 0; color: var(--accent-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+a { color: var(--accent-soft); }
+header.page {
+  max-width: 1280px; margin: 0 auto 48px;
+}
+header.page p { color: var(--muted); margin: 6px 0 0; max-width: 700px; }
+
+.scenario {
+  max-width: 1280px;
+  margin: 0 auto 64px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 24px;
+}
+.scenario header {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;
+}
+.scenario header .badge {
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+  color: white; font-weight: 700; font-size: 12px;
+  padding: 3px 10px; border-radius: 999px; letter-spacing: 0.04em;
+}
+.scenario header h2 { font-size: 20px; }
+.scenario .narration { color: var(--muted); margin: 4px 0 24px; max-width: 800px; }
+
+.flow {
+  display: flex; gap: 20px; align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+/* iPhone-frame */
+.phone {
+  flex: 0 0 280px;
+  background: #0a0a0c;
+  border: 1px solid #2a2a32;
+  border-radius: 36px;
+  padding: 10px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.4), inset 0 0 0 1px #1c1c22;
+  position: relative;
+}
+.phone:after {
+  /* notch */
+  content: ""; position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  width: 84px; height: 22px; background: #0a0a0c; border-radius: 12px; z-index: 5;
+}
+.phone .screen {
+  background: var(--screen);
+  border-radius: 28px;
+  color: var(--screen-text);
+  overflow: hidden;
+  position: relative;
+  min-height: 540px;
+  display: flex; flex-direction: column;
+}
+.statusbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 22px 8px; font-size: 12px; font-weight: 600; color: #000;
+}
+.statusbar .right { display: flex; gap: 4px; align-items: center; }
+.statusbar .right .battery { width: 22px; height: 11px; border: 1px solid #000; border-radius: 3px; position: relative; }
+.statusbar .right .battery:after {
+  content: ""; position: absolute; right: -3px; top: 3px; width: 2px; height: 5px; background: #000; border-radius: 0 1px 1px 0;
+}
+.statusbar .right .battery .fill { width: 80%; height: 100%; background: #000; border-radius: 1px; }
+
+.navbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 16px 12px; border-bottom: 1px solid var(--screen-line);
+  background: var(--screen-2);
+}
+.navbar .title { font-weight: 700; font-size: 17px; }
+.navbar .btn-link { color: var(--accent); font-size: 15px; font-weight: 500; cursor: pointer; }
+
+.content { padding: 16px; flex: 1; overflow: hidden; }
+.content.center { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 16px; padding: 24px 24px 48px; }
+.content.scroll { overflow: hidden; }
+
+.input {
+  width: 100%; border: 1px solid var(--screen-line);
+  background: white; border-radius: 10px; padding: 12px 14px; font-size: 15px;
+  margin-bottom: 10px; color: var(--screen-text);
+}
+.input.placeholder { color: var(--screen-text-2); }
+.label { font-size: 12px; color: var(--screen-text-2); margin: 12px 0 4px; }
+
+.button {
+  width: 100%;
+  background: var(--accent); color: white;
+  border: none; border-radius: 10px;
+  padding: 13px; font-weight: 600; font-size: 16px; cursor: pointer;
+  margin-top: 8px;
+}
+.button.outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+.button.gray { background: #e5e5ea; color: var(--screen-text); }
+.button.danger { background: var(--red); }
+.button:disabled { opacity: 0.5; }
+
+.bigicon {
+  width: 84px; height: 84px; border-radius: 22px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-soft));
+  display: flex; align-items: center; justify-content: center; color: white;
+  font-size: 40px; font-weight: 800;
+  box-shadow: 0 8px 24px rgba(168,85,247,0.35);
+}
+
+.empty-state h3 { color: var(--screen-text); text-transform: none; letter-spacing: 0; font-size: 19px; margin: 16px 0 6px; font-weight: 700; }
+.empty-state p { color: var(--screen-text-2); margin: 0 0 16px; font-size: 14px; }
+
+/* book card */
+.book-card {
+  background: white; border-radius: 12px; padding: 12px;
+  display: flex; gap: 12px; align-items: center;
+  border: 1px solid var(--screen-line);
+  margin-bottom: 10px;
+}
+.book-cover {
+  width: 50px; height: 70px; border-radius: 6px;
+  background: linear-gradient(135deg, #4c1d95, #a855f7);
+  color: white; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; padding: 4px; text-align: center; font-weight: 700;
+  line-height: 1.1; flex: 0 0 auto;
+}
+.book-cover.austen { background: linear-gradient(135deg, #b91c1c, #f97316); }
+.book-cover.tolstoy { background: linear-gradient(135deg, #0c4a6e, #06b6d4); }
+.book-cover.wilde { background: linear-gradient(135deg, #4d7c0f, #84cc16); }
+.book-meta { flex: 1; min-width: 0; }
+.book-meta .title { font-weight: 700; font-size: 14px; color: var(--screen-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.book-meta .author { font-size: 12px; color: var(--screen-text-2); margin: 2px 0; }
+.book-meta .pages { font-size: 11px; color: var(--screen-text-2); }
+.book-meta .pages .pill { background: var(--screen-2); border-radius: 999px; padding: 2px 8px; }
+.book-meta .pages .pill.processing { color: var(--accent); background: #f3e8ff; }
+.book-meta .pages .pill.ready { color: #047857; background: #d1fae5; }
+.book-meta .pages .pill.failed { color: #b91c1c; background: #fee2e2; }
+
+.progress-bar { height: 4px; background: var(--screen-line); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.progress-bar .fill { height: 100%; background: var(--accent); border-radius: 2px; }
+
+.tabbar {
+  border-top: 1px solid var(--screen-line);
+  display: flex; padding: 8px 0 18px; background: var(--screen-2);
+}
+.tabbar .tab { flex: 1; text-align: center; font-size: 11px; color: var(--screen-text-2); }
+.tabbar .tab.active { color: var(--accent); }
+.tabbar .tab .icon { font-size: 18px; display: block; line-height: 22px; }
+
+.reader-page {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14.5px; line-height: 1.6;
+  padding: 16px;
+  color: var(--screen-text);
+  overflow: hidden;
+  flex: 1;
+}
+.reader-page h4 { text-align: center; font-family: inherit; margin: 0 0 12px; font-size: 16px; }
+.reader-page p { margin: 0 0 12px; text-align: justify; }
+.reader-controls {
+  background: var(--screen-2);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 16px; border-top: 1px solid var(--screen-line);
+  font-size: 12px; color: var(--screen-text-2);
+}
+.reader-controls .nav { color: var(--accent); font-weight: 600; cursor: pointer; }
+.reader-controls .nav.disabled { color: #c0c0c8; cursor: default; }
+
+/* vocabulary row */
+.vocab-row {
+  display: flex; justify-content: space-between; padding: 10px 4px;
+  border-bottom: 1px solid var(--screen-line);
+  font-size: 14px; color: var(--screen-text);
+}
+.vocab-row .rank { color: var(--screen-text-2); width: 28px; }
+.vocab-row .word { flex: 1; font-weight: 500; }
+.vocab-row .freq { color: var(--accent); font-weight: 600; }
+
+.toast {
+  background: rgba(28,28,30,0.92);
+  color: white; padding: 10px 14px; border-radius: 10px;
+  font-size: 13px; max-width: 240px; align-self: center;
+}
+.toast.error { background: rgba(220,38,38,0.95); }
+
+.spinner {
+  width: 32px; height: 32px; border: 3px solid var(--screen-line); border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.dots { display: flex; gap: 6px; }
+.dots div { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0.4; }
+.dots div:nth-child(2) { opacity: 0.7; }
+.dots div:nth-child(3) { opacity: 1; }
+
+/* caption + api side card */
+.step {
+  flex: 0 0 280px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+.step-no {
+  display: inline-flex; width: 28px; height: 28px; border-radius: 14px;
+  background: var(--panel-2); color: var(--accent-soft);
+  align-items: center; justify-content: center; font-weight: 700; font-size: 13px;
+  border: 1px solid var(--line);
+}
+.step-title { font-weight: 600; }
+.step-desc { color: var(--muted); font-size: 13px; }
+
+.api {
+  background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px; font-family: "SF Mono", ui-monospace, Menlo, monospace;
+  font-size: 12px; line-height: 1.5;
+  color: var(--text);
+  word-break: break-all;
+}
+.api .verb { color: var(--green); font-weight: 700; }
+.api .verb.post { color: var(--amber); }
+.api .verb.patch { color: var(--blue); }
+.api .path { color: var(--accent-soft); }
+.api .small { color: var(--muted); font-size: 11px; }
+.api .ok { color: var(--green); }
+.api .err { color: var(--red); }
+.api code { display: block; white-space: pre-wrap; color: var(--text); }
+
+.arrow {
+  align-self: center; flex: 0 0 auto; color: var(--muted);
+  font-size: 28px; padding: 0 4px;
+}
+
+.legend {
+  max-width: 1280px; margin: 0 auto 48px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  font-size: 13px;
+}
+.legend .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.legend .card b { color: var(--accent-soft); display: block; margin-bottom: 4px; }
+
+.bullet-list { padding-left: 18px; margin: 6px 0; }
+.bullet-list li { margin-bottom: 2px; }
+
+.kv { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.kv .pill { background: var(--panel-2); border: 1px solid var(--line); padding: 2px 8px; border-radius: 999px; }
+.kv .pill.warn { color: var(--amber); border-color: rgba(251,191,36,0.4); }
+.kv .pill.ok { color: var(--green); border-color: rgba(52,211,153,0.4); }
+.kv .pill.err { color: var(--red); border-color: rgba(248,113,113,0.4); }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h3>Plum Reader · iOS app flows</h3>
+  <h1>Как iOS-приложение работает с API</h1>
+  <p>
+    Карта пользовательских сценариев + точные API-вызовы в каждой точке.
+    Каждый телефон — отдельный экран; стрелка — переход. Под каждым экраном —
+    что приложение в этот момент дёргает на бэкенде.
+    Авторитативный контракт — <a href="../api/openapi.yaml">openapi.yaml</a>,
+    реальные ответы сервера — <a href="./sample-output.txt">sample-output.txt</a>.
+  </p>
+</header>
+
+<!-- LEGEND -->
+<div class="legend">
+  <div class="card"><b>Auth</b>JWT (HS256, 60 мин). На каждом authed-запросе — <code>Authorization: Bearer …</code>. На 401 → re-login.</div>
+  <div class="card"><b>Polling</b>После upload фронт опрашивает <code>GET /books/{id}</code> каждые ~1с пока <code>status / markupStatus</code> ≠ ready.</div>
+  <div class="card"><b>Sandbox</b>HTML страниц рендерится в <code>WKWebView</code> с отключённым JS — EPUB-content неприоверенный.</div>
+  <div class="card"><b>Errors</b>Стабильный enum <code>error</code> в JSON. См. <a href="../api/errors.md">errors.md</a>.</div>
+</div>
+
+<!-- SCENARIO 1 -->
+<section class="scenario">
+  <header>
+    <span class="badge">Сценарий 1</span>
+    <h2>Onboarding · регистрация и вход</h2>
+  </header>
+  <p class="narration">
+    Первый запуск. Пользователь видит splash, потом форму регистрации (либо переключается на login).
+    JWT кладётся в Keychain. На любой 401 от backend'а — экран login возвращается.
+  </p>
+  <div class="flow">
+
+    <!-- Splash -->
+    <div class="step">
+      <div><span class="step-no">1</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="content center">
+          <div class="bigicon">PR</div>
+          <h2 style="color:#1c1c1e">Plum Reader</h2>
+          <p style="color:#636366;margin:0">Книги. Словарь. Прогресс.</p>
+        </div>
+      </div></div>
+      <div class="step-title">Splash</div>
+      <div class="step-desc">Первый запуск. Если в Keychain есть JWT — проверяем через /me и сразу к библиотеке. Иначе — на login.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/me</span>
+        <div class="small">→ 200 (есть токен) или 401 (нет/истёк)</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Register form -->
+    <div class="step">
+      <div><span class="step-no">2</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">Войти</span><span class="title">Регистрация</span><span></span></div>
+        <div class="content">
+          <div class="label">Email</div>
+          <div class="input">alice@example.com</div>
+          <div class="label">Имя (необязательно)</div>
+          <div class="input">Alice</div>
+          <div class="label">Пароль (минимум 12 символов)</div>
+          <div class="input">••••••••••••••••</div>
+          <button class="button">Создать аккаунт</button>
+        </div>
+      </div></div>
+      <div class="step-title">Регистрация</div>
+      <div class="step-desc">Bean-validation на сервере: email RFC 5322, password 12..128. Клиент валидирует так же до отправки.</div>
+      <div class="api">
+        <span class="verb post">POST</span> <span class="path">/api/v1/auth/register</span>
+        <code>{ "email":"alice@example.com",
+  "password":"supersecret-pass",
+  "name":"Alice" }</code>
+        <div class="small ok">201 → { token, user: {id, email, name} }</div>
+        <div class="small err">409 email_already_taken · 400 validation_failed</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Login form alt path -->
+    <div class="step">
+      <div><span class="step-no">2'</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Вход</span><span class="btn-link">Создать</span></div>
+        <div class="content">
+          <div class="label">Email</div>
+          <div class="input">alice@example.com</div>
+          <div class="label">Пароль</div>
+          <div class="input">••••••••••••••••</div>
+          <button class="button">Войти</button>
+          <div style="margin-top:10px"><div class="toast error">Неверный email или пароль</div></div>
+        </div>
+      </div></div>
+      <div class="step-title">Login (альт. путь)</div>
+      <div class="step-desc">На 401 показываем generic-сообщение — сервер не различает unknown email vs wrong password (тайминг тоже выровнен).</div>
+      <div class="api">
+        <span class="verb post">POST</span> <span class="path">/api/v1/auth/login</span>
+        <div class="small ok">200 → { token, user }</div>
+        <div class="small err">401 invalid_credentials</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Token saved, redirect -->
+    <div class="step">
+      <div><span class="step-no">3</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Библиотека</span><span class="btn-link">+</span></div>
+        <div class="content center">
+          <div class="spinner"></div>
+          <div style="color:#636366">Загружаем библиотеку…</div>
+        </div>
+      </div></div>
+      <div class="step-title">Токен сохранён в Keychain</div>
+      <div class="step-desc">Сразу запрашиваем библиотеку. Apple Keychain — единственное безопасное место для JWT на iOS.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books</span>
+        <div class="small">Authorization: Bearer eyJhbGc…</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- SCENARIO 2 -->
+<section class="scenario">
+  <header>
+    <span class="badge">Сценарий 2</span>
+    <h2>Первая загрузка книги · async пайплайн</h2>
+  </header>
+  <p class="narration">
+    Пустая библиотека → пользователь грузит EPUB через системный picker → пайплайн отрабатывает за ~2-3 секунды.
+    Приложение показывает реалистичный статус через polling.
+  </p>
+  <div class="flow">
+
+    <!-- Empty library -->
+    <div class="step">
+      <div><span class="step-no">1</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Библиотека</span><span class="btn-link">+</span></div>
+        <div class="content center">
+          <div class="bigicon" style="background:linear-gradient(135deg,#e5e5ea,#d1d1d6);color:#1c1c1e">📕</div>
+          <div class="empty-state">
+            <h3>Здесь пока пусто</h3>
+            <p>Загрузи первую EPUB-книгу, чтобы начать.</p>
+          </div>
+          <button class="button" style="max-width:200px">Выбрать файл</button>
+        </div>
+        <div class="tabbar">
+          <div class="tab active"><span class="icon">📚</span>Книги</div>
+          <div class="tab"><span class="icon">⚙️</span>Профиль</div>
+        </div>
+      </div></div>
+      <div class="step-title">Пустая библиотека</div>
+      <div class="step-desc">`items: []`, `more: false`. Empty-state CTA → системный picker (`UIDocumentPickerViewController`).</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books</span>
+        <code>{ "items": [], "more": false }</code>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- File picker -->
+    <div class="step">
+      <div><span class="step-no">2</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">Отмена</span><span class="title">Файлы</span><span class="btn-link">Выбрать</span></div>
+        <div class="content">
+          <div style="background:white;border-radius:10px;padding:12px;border:1px solid #d1d1d6;display:flex;gap:10px;align-items:center">
+            <div style="font-size:30px">📘</div>
+            <div style="flex:1">
+              <div style="font-weight:600">pride.epub</div>
+              <div style="font-size:12px;color:#636366">24 МБ · application/epub+zip</div>
+            </div>
+            <div style="color:#a855f7;font-weight:600">✓</div>
+          </div>
+          <div style="background:white;border-radius:10px;padding:12px;border:1px solid #d1d1d6;display:flex;gap:10px;align-items:center;margin-top:8px;opacity:0.6">
+            <div style="font-size:30px">📕</div>
+            <div style="flex:1">
+              <div style="font-weight:600">notes.txt</div>
+              <div style="font-size:12px;color:#636366">2 КБ</div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="step-title">Системный picker</div>
+      <div class="step-desc">UTType.epub. Файл может быть на устройстве или в iCloud Drive — picker нам отдаёт URL.</div>
+      <div class="api">
+        <span class="small">iOS API: UIDocumentPickerViewController</span>
+        <div class="small">→ URL → URLSession.uploadTask (multipart)</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Processing -->
+    <div class="step">
+      <div><span class="step-no">3</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Pride and Prejudice</span><span></span></div>
+        <div class="content">
+          <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px">
+            <div class="book-cover austen">Pride and Prejudice</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:16px;color:#1c1c1e">Pride and Prejudice</div>
+              <div style="color:#636366;font-size:13px">Jane Austen · en</div>
+              <div style="color:#636366;font-size:12px;margin-top:2px">24 МБ · sha256: b5474c…</div>
+            </div>
+          </div>
+          <div style="background:#f3e8ff;border-radius:10px;padding:14px;color:#6b21a8">
+            <div style="display:flex;gap:8px;align-items:center;font-weight:600;margin-bottom:4px">
+              <div class="dots"><div></div><div></div><div></div></div>
+              <span>Обрабатываем книгу…</span>
+            </div>
+            <div style="font-size:12px;color:#7c3aed">
+              Разбиваем на страницы и строим словарь. Обычно 2-5 секунд.
+            </div>
+            <div class="progress-bar" style="margin-top:10px"><div class="fill" style="width:55%"></div></div>
+            <div style="font-size:11px;color:#9333ea;margin-top:6px">status: processing · markup: pending</div>
+          </div>
+        </div>
+      </div></div>
+      <div class="step-title">Обработка (polling)</div>
+      <div class="step-desc">Книга уже создана и в библиотеке (status: uploaded → processing), но <b>страницы недоступны</b> пока ≠ ready. UI это знает и не пытается их грузить.</div>
+      <div class="api">
+        <span class="verb post">POST</span> <span class="path">/api/v1/books/upload</span> <span class="small">multipart</span>
+        <div class="small ok">201 + UploadResponse{ book, deduplicated, jobId }</div>
+        <hr style="border:none;border-top:1px solid var(--line);margin:6px 0">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}</span>
+        <div class="small">опрос каждые ~1с пока status=ready</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Ready -->
+    <div class="step">
+      <div><span class="step-no">4</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Pride and Prejudice</span><span></span></div>
+        <div class="content">
+          <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px">
+            <div class="book-cover austen">Pride and Prejudice</div>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:16px;color:#1c1c1e">Pride and Prejudice</div>
+              <div style="color:#636366;font-size:13px">Jane Austen · en</div>
+              <div style="font-size:12px;margin-top:4px"><span class="pill" style="background:#d1fae5;color:#047857;padding:2px 8px;border-radius:999px;">17 страниц · готово</span></div>
+            </div>
+          </div>
+          <button class="button" style="margin-bottom:8px">Читать с начала</button>
+          <button class="button outline">Словарь · 7 083 слова</button>
+        </div>
+      </div></div>
+      <div class="step-title">Готово — оба пайплайна</div>
+      <div class="step-desc">status: ready, markupStatus: ready. Появляется CTA "Читать" и доступен словарь. lastPageIdx=null → "Читать с начала".</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}</span>
+        <code>{ "status":"ready", "markupStatus":"ready",
+  "pageCount":17, "lastPageIdx":null }</code>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- SCENARIO 3 -->
+<section class="scenario">
+  <header>
+    <span class="badge">Сценарий 3</span>
+    <h2>Чтение книги · постраничная навигация и прогресс</h2>
+  </header>
+  <p class="narration">
+    Пользователь читает, перелистывает страницы (prev/next), приложение
+    автоматически сохраняет прогресс. На другом устройстве — продолжит с той же
+    страницы.
+  </p>
+  <div class="flow">
+
+    <!-- Library with books -->
+    <div class="step">
+      <div><span class="step-no">1</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Библиотека</span><span class="btn-link">+</span></div>
+        <div class="content">
+          <div class="book-card">
+            <div class="book-cover austen">Pride and Prejudice</div>
+            <div class="book-meta">
+              <div class="title">Pride and Prejudice</div>
+              <div class="author">Jane Austen</div>
+              <div class="pages"><span class="pill ready">17 стр.</span> <span style="color:#636366">·стр. 5 из 17</span></div>
+              <div class="progress-bar"><div class="fill" style="width:29%"></div></div>
+            </div>
+          </div>
+          <div class="book-card">
+            <div class="book-cover tolstoy">Anna Karenina</div>
+            <div class="book-meta">
+              <div class="title">Anna Karenina</div>
+              <div class="author">Лев Толстой</div>
+              <div class="pages"><span class="pill processing">обрабатываем…</span></div>
+            </div>
+          </div>
+          <div class="book-card">
+            <div class="book-cover wilde">Dorian Gray</div>
+            <div class="book-meta">
+              <div class="title">The Picture of Dorian Gray</div>
+              <div class="author">Oscar Wilde</div>
+              <div class="pages"><span class="pill ready">28 стр.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab active"><span class="icon">📚</span>Книги</div>
+          <div class="tab"><span class="icon">⚙️</span>Профиль</div>
+        </div>
+      </div></div>
+      <div class="step-title">Библиотека с книгами</div>
+      <div class="step-desc">Карточки с обложкой, прогрессом, status-pill. Если markupStatus ≠ ready — словарь disabled, чтение работает.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books</span>
+        <div class="small">items: [BookSummary]</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Reader first page -->
+    <div class="step">
+      <div><span class="step-no">2</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Назад</span><span class="title">5 / 17</span><span class="btn-link">Aa</span></div>
+        <div class="reader-page">
+          <h4>Глава 1</h4>
+          <p>It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.</p>
+          <p>However little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families…</p>
+          <p style="font-style:italic;color:#636366;text-align:center">— Mr. Bennet</p>
+        </div>
+        <div class="reader-controls">
+          <span class="nav">‹ Назад</span>
+          <span>стр. 5</span>
+          <span class="nav">Дальше ›</span>
+        </div>
+      </div></div>
+      <div class="step-title">Reader · текущая страница</div>
+      <div class="step-desc">XHTML рендерится в WKWebView в sandbox (JavaScript выключен, кастомный CSS поверх для типографики). Жест влево/вправо или кнопки.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}/pages/5</span>
+        <code>{ "idx":5, "total":17,
+  "xhtml":"&lt;html&gt;…",
+  "prevIdx":4, "nextIdx":6 }</code>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Last page -->
+    <div class="step">
+      <div><span class="step-no">3</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Назад</span><span class="title">17 / 17</span><span class="btn-link">Aa</span></div>
+        <div class="reader-page">
+          <p>…with the gentleman from whom she had received, in proportion to its real value, neither civility, attention, nor kindness.</p>
+          <p style="text-align:center;color:#636366;margin-top:24px">— FINIS —</p>
+          <div style="background:#f3e8ff;border-radius:10px;padding:14px;margin-top:24px;color:#6b21a8;text-align:center">
+            <div style="font-weight:700">Книга закончена!</div>
+            <button class="button outline" style="margin-top:10px">Открыть словарь</button>
+          </div>
+        </div>
+        <div class="reader-controls">
+          <span class="nav">‹ Назад</span>
+          <span>стр. 17</span>
+          <span class="nav disabled">Дальше ›</span>
+        </div>
+      </div></div>
+      <div class="step-title">Последняя страница</div>
+      <div class="step-desc">nextIdx === null → кнопка "Дальше" disabled, показывается end-screen с CTA на словарь.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}/pages/16</span>
+        <code>{ "idx":16, "total":17,
+  "prevIdx":15, "nextIdx":null }</code>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Progress saved -->
+    <div class="step">
+      <div><span class="step-no">4</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Назад</span><span class="title">5 / 17</span><span class="btn-link">Aa</span></div>
+        <div class="reader-page">
+          <p>It is a truth universally acknowledged, that a single man in possession of a good fortune…</p>
+          <p>However little known…</p>
+        </div>
+        <div class="toast" style="position:absolute;left:50%;transform:translateX(-50%);bottom:64px">✓ Прогресс сохранён</div>
+        <div class="reader-controls">
+          <span class="nav">‹ Назад</span>
+          <span>стр. 5</span>
+          <span class="nav">Дальше ›</span>
+        </div>
+      </div></div>
+      <div class="step-title">Сохранение прогресса</div>
+      <div class="step-desc">При каждом перелистывании (с debounce 1-2с) — PATCH. updatedAt используется для multi-device last-write-wins.</div>
+      <div class="api">
+        <span class="verb patch">PATCH</span> <span class="path">/api/v1/books/{id}/progress</span>
+        <code>{ "lastPageIdx": 5 }</code>
+        <div class="small ok">200 → { bookId, lastPageIdx, updatedAt }</div>
+        <div class="small err">400 invalid_progress · 409 book_not_ready</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- SCENARIO 4 -->
+<section class="scenario">
+  <header>
+    <span class="badge">Сценарий 4</span>
+    <h2>Multi-device · открываем книгу на втором устройстве</h2>
+  </header>
+  <p class="narration">
+    Пользователь читал на iPhone. Открывает то же приложение на iPad / другом
+    iPhone (тот же аккаунт). Сервер хранит lastPageIdx — приложение продолжает с
+    нужной страницы.
+  </p>
+  <div class="flow">
+
+    <div class="step">
+      <div><span class="step-no">1</span></div>
+      <div class="phone" style="flex-basis:240px"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>WiFi</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Библиотека</span><span class="btn-link">+</span></div>
+        <div class="content">
+          <div class="book-card">
+            <div class="book-cover austen">Pride and Prejudice</div>
+            <div class="book-meta">
+              <div class="title">Pride and Prejudice</div>
+              <div class="author">Jane Austen</div>
+              <div class="pages"><span style="color:#636366">Читать с 5-й</span></div>
+              <div class="progress-bar"><div class="fill" style="width:29%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="step-title">iPad · открываем библиотеку</div>
+      <div class="step-desc">items[i].lastPageIdx уже содержит сохранённый прогресс с iPhone — фронт сразу подсветит "Читать с 5-й".</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books</span>
+        <div class="small">item.lastPageIdx = 5</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="step">
+      <div><span class="step-no">2</span></div>
+      <div class="phone" style="flex-basis:240px"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>WiFi</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Назад</span><span class="title">5 / 17</span><span class="btn-link">Aa</span></div>
+        <div class="reader-page">
+          <p>It is a truth universally acknowledged…</p>
+        </div>
+        <div class="reader-controls"><span class="nav">‹ Назад</span><span>стр. 5</span><span class="nav">Дальше ›</span></div>
+      </div></div>
+      <div class="step-title">Прыжок на нужную страницу</div>
+      <div class="step-desc">Открываем `/pages/5` сразу. Запросы — ровно две штуки на открытие книги: detail (был кэширован после list) + pages/{lastPageIdx}.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}/pages/5</span>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="step">
+      <div><span class="step-no">3</span></div>
+      <div class="phone" style="flex-basis:240px"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>WiFi</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Назад</span><span class="title">7 / 17</span><span class="btn-link">Aa</span></div>
+        <div class="reader-page">
+          <p>Mr. Bennet was so odd a mixture of quick parts, sarcastic humour, reserve…</p>
+        </div>
+        <div class="toast" style="position:absolute;left:50%;transform:translateX(-50%);bottom:64px">✓ Прогресс сохранён</div>
+        <div class="reader-controls"><span class="nav">‹ Назад</span><span>стр. 7</span><span class="nav">Дальше ›</span></div>
+      </div></div>
+      <div class="step-title">Прочитали 2 страницы → сервер знает</div>
+      <div class="step-desc">PATCH /progress отправляется. Теперь если переключиться обратно на iPhone — там будет стр. 7. updatedAt — для conflict-resolution.</div>
+      <div class="api">
+        <span class="verb patch">PATCH</span> <span class="path">/api/v1/books/{id}/progress</span>
+        <code>{ "lastPageIdx": 7 }</code>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- SCENARIO 5 -->
+<section class="scenario">
+  <header>
+    <span class="badge">Сценарий 5</span>
+    <h2>Словарь книги · vocabulary index</h2>
+  </header>
+  <p class="narration">
+    После того как markup отработал, у каждой книги доступен список слов с
+    частотами. Это основа для language-learning UX: "часто встречающиеся слова",
+    "ты уже знаешь это слово?", "встретилось 596 раз".
+  </p>
+  <div class="flow">
+
+    <div class="step">
+      <div><span class="step-no">1</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Книга</span><span class="title">Словарь</span><span></span></div>
+        <div class="content scroll" style="padding:0 16px">
+          <div style="padding:12px 4px;border-bottom:1px solid #d1d1d6;font-size:12px;color:#636366">7 083 уникальных слова · топ по частоте</div>
+          <div class="vocab-row"><span class="rank">1</span><span class="word">the</span><span class="freq">4 843</span></div>
+          <div class="vocab-row"><span class="rank">2</span><span class="word">to</span><span class="freq">4 405</span></div>
+          <div class="vocab-row"><span class="rank">3</span><span class="word">of</span><span class="freq">3 965</span></div>
+          <div class="vocab-row"><span class="rank">4</span><span class="word">and</span><span class="freq">3 853</span></div>
+          <div class="vocab-row"><span class="rank">5</span><span class="word">her</span><span class="freq">2 284</span></div>
+          <div class="vocab-row"><span class="rank">6</span><span class="word">in</span><span class="freq">2 052</span></div>
+          <div class="vocab-row"><span class="rank">7</span><span class="word">was</span><span class="freq">1 878</span></div>
+          <div class="vocab-row"><span class="rank">8</span><span class="word">she</span><span class="freq">1 751</span></div>
+          <div class="vocab-row"><span class="rank">9</span><span class="word">that</span><span class="freq">1 661</span></div>
+          <div class="vocab-row"><span class="rank">10</span><span class="word">it</span><span class="freq">1 603</span></div>
+          <div class="vocab-row"><span class="rank">…</span><span class="word">…</span><span class="freq"></span></div>
+        </div>
+      </div></div>
+      <div class="step-title">Топ слов</div>
+      <div class="step-desc">Бесконечный скролл через offset. limit cap = 500 — для UX хватит на много страниц.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}/vocabulary?limit=50&amp;offset=0</span>
+        <div class="small ok">200 → VocabularyResponse{ total, items: [{word,frequency,rank}] }</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="step">
+      <div><span class="step-no">2</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Словарь</span><span class="title">elizabeth</span><span></span></div>
+        <div class="content center" style="padding-top:32px">
+          <div style="font-size:48px;font-weight:800;color:#1c1c1e">596</div>
+          <div style="color:#636366">встречается в книге</div>
+          <div style="margin-top:24px;background:#f3e8ff;border-radius:10px;padding:14px;text-align:left;width:100%;color:#1c1c1e">
+            <div style="color:#7c3aed;font-size:12px;text-transform:uppercase;letter-spacing:0.05em">Из главы 5</div>
+            <div style="margin-top:6px">"…in fact, <b>Elizabeth</b> walked the three miles to Netherfield…"</div>
+          </div>
+          <button class="button outline" style="margin-top:16px">Все вхождения</button>
+        </div>
+      </div></div>
+      <div class="step-title">Карточка слова</div>
+      <div class="step-desc">Тап по слову в списке → детали. В MVP — только frequency. В roadmap — контекстные предложения, перевод, аудио.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}/words/elizabeth</span>
+        <code>{ "word":"elizabeth", "frequency":596, "rank":null }</code>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="step">
+      <div><span class="step-no">3</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Назад</span><span class="title">Поиск</span><span></span></div>
+        <div class="content">
+          <div class="input">unfound-word</div>
+          <div style="padding:32px 16px;text-align:center">
+            <div style="font-size:40px">🔍</div>
+            <div style="font-weight:600;margin-top:8px;color:#1c1c1e">Не найдено</div>
+            <div style="font-size:13px;color:#636366;margin-top:4px">Слова «unfound-word» нет в этой книге.</div>
+          </div>
+        </div>
+      </div></div>
+      <div class="step-title">Поиск слова — 404</div>
+      <div class="step-desc">Lookup case-insensitive (сервер lowercase'ит). На 404 — пустое state без alert'а.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}/words/unfound-word</span>
+        <div class="small err">404 word_not_found</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- SCENARIO 6 -->
+<section class="scenario">
+  <header>
+    <span class="badge">Сценарий 6</span>
+    <h2>Ошибочные состояния · что показываем пользователю</h2>
+  </header>
+  <p class="narration">
+    Битый EPUB, истёкший JWT, попытка читать книгу до окончания обработки.
+    Каждая ошибка имеет стабильный <code>error</code>-код, фронт matches на enum.
+  </p>
+  <div class="flow">
+
+    <!-- Invalid EPUB -->
+    <div class="step">
+      <div><span class="step-no">A</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Загрузка</span><span></span></div>
+        <div class="content center">
+          <div style="font-size:48px">⚠️</div>
+          <div style="font-weight:700;color:#1c1c1e;font-size:18px">Не удалось загрузить</div>
+          <div style="color:#636366;text-align:center">Этот файл не похож на EPUB.<br/>Проверь расширение и попробуй другой.</div>
+          <button class="button" style="max-width:200px">Выбрать другой файл</button>
+        </div>
+      </div></div>
+      <div class="step-title">Битый EPUB</div>
+      <div class="step-desc">Любая 422 на upload — единый friendly-экран. Конкретику (`invalid_epub` vs `unsupported_file`) можно показать в diagnostic deeplink, но не основному юзеру.</div>
+      <div class="api">
+        <span class="verb post">POST</span> <span class="path">/api/v1/books/upload</span>
+        <div class="small err">422 invalid_epub · 422 unsupported_file · 413 file_too_large</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Token expired -->
+    <div class="step">
+      <div><span class="step-no">B</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Вход</span><span class="btn-link">Создать</span></div>
+        <div class="content">
+          <div class="toast error" style="margin-bottom:16px">Сессия истекла, войди снова</div>
+          <div class="label">Email</div>
+          <div class="input">alice@example.com</div>
+          <div class="label">Пароль</div>
+          <div class="input placeholder">пароль</div>
+          <button class="button">Войти</button>
+        </div>
+      </div></div>
+      <div class="step-title">JWT истёк</div>
+      <div class="step-desc">На любой 401 в authed-запросе — interceptor возвращает на login. Email pre-fill. Refresh-токенов нет (MVP).</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/me</span>
+        <div class="small err">401 (empty body) → redirect /login</div>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- Book failed -->
+    <div class="step">
+      <div><span class="step-no">C</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Книга</span><span></span></div>
+        <div class="content">
+          <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:18px">
+            <div class="book-cover" style="background:linear-gradient(135deg,#7f1d1d,#dc2626)">FAILED</div>
+            <div>
+              <div style="font-weight:700;color:#1c1c1e">strange-file.epub</div>
+              <div style="color:#636366;font-size:13px">— · —</div>
+              <div style="font-size:12px;margin-top:4px"><span class="pill failed" style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:999px">failed</span></div>
+            </div>
+          </div>
+          <div style="background:#fee2e2;color:#7f1d1d;border-radius:10px;padding:12px;font-size:13px">
+            Не получилось обработать книгу.<br/>
+            <span style="opacity:0.8">Причина: invalid_epub: not a ZIP archive</span>
+          </div>
+          <button class="button danger" style="margin-top:16px">Удалить из библиотеки</button>
+        </div>
+      </div></div>
+      <div class="step-title">Terminal failure</div>
+      <div class="step-desc">После maxAttempts retry — book.status='failed', есть error. UI показывает причину и единственное действие (delete). Retry в roadmap.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}</span>
+        <code>{ "status":"failed", "error":"invalid_epub: …" }</code>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <!-- markup not ready -->
+    <div class="step">
+      <div><span class="step-no">D</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span class="btn-link">‹ Книга</span><span class="title">Словарь</span><span></span></div>
+        <div class="content center">
+          <div class="dots"><div></div><div></div><div></div></div>
+          <div style="font-weight:600;color:#1c1c1e;margin-top:8px">Словарь готовится…</div>
+          <div style="color:#636366;font-size:13px;text-align:center">Подсчитываем частоты слов.<br/>Обычно несколько секунд.</div>
+        </div>
+      </div></div>
+      <div class="step-title">Словарь не готов</div>
+      <div class="step-desc">409 `markup_not_ready` → spinner. Чтение работает (book.status=ready), словарь догоняет отдельно.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/books/{id}/vocabulary</span>
+        <div class="small err">409 markup_not_ready · {markupStatus:"processing"}</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- SCENARIO 7 -->
+<section class="scenario">
+  <header>
+    <span class="badge">Сценарий 7</span>
+    <h2>Профиль / выход</h2>
+  </header>
+  <p class="narration">
+    Минимальный профиль (это MVP). Выход = очистка JWT из Keychain и возврат на splash.
+  </p>
+  <div class="flow">
+
+    <div class="step">
+      <div><span class="step-no">1</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="navbar"><span></span><span class="title">Профиль</span><span></span></div>
+        <div class="content">
+          <div style="background:white;border-radius:10px;padding:14px;border:1px solid #d1d1d6">
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="bigicon" style="width:44px;height:44px;font-size:18px;border-radius:12px">A</div>
+              <div>
+                <div style="font-weight:700;color:#1c1c1e">Alice</div>
+                <div style="color:#636366;font-size:12px">alice@example.com</div>
+              </div>
+            </div>
+          </div>
+          <div style="background:white;border-radius:10px;border:1px solid #d1d1d6;margin-top:16px">
+            <div style="padding:12px;border-bottom:1px solid #efeff4;color:#1c1c1e">📚 Библиотека (3)</div>
+            <div style="padding:12px;border-bottom:1px solid #efeff4;color:#1c1c1e">📖 Прочитано: 1</div>
+            <div style="padding:12px;color:#dc2626">Выйти</div>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab"><span class="icon">📚</span>Книги</div>
+          <div class="tab active"><span class="icon">⚙️</span>Профиль</div>
+        </div>
+      </div></div>
+      <div class="step-title">Профиль</div>
+      <div class="step-desc">Имя и email из JWT — без extra-запросов (data в claims). Счётчики — из GET /books.</div>
+      <div class="api">
+        <span class="verb">GET</span> <span class="path">/api/v1/me</span>
+        <span class="verb">GET</span> <span class="path">/api/v1/books</span> <span class="small">(для счётчиков)</span>
+      </div>
+    </div>
+
+    <div class="arrow">→</div>
+
+    <div class="step">
+      <div><span class="step-no">2</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="right"><span>5G</span><span class="battery"><span class="fill"></span></span></span></div>
+        <div class="content center">
+          <div class="bigicon">PR</div>
+          <h2 style="color:#1c1c1e">Plum Reader</h2>
+          <p style="color:#636366;margin:0">Книги. Словарь. Прогресс.</p>
+          <button class="button" style="max-width:200px;margin-top:24px">Войти</button>
+          <button class="button outline" style="max-width:200px">Создать аккаунт</button>
+        </div>
+      </div></div>
+      <div class="step-title">После выхода</div>
+      <div class="step-desc">Очищаем JWT из Keychain, чистим in-memory cache (URLCache.shared.removeAllCachedResponses), возвращаемся на splash.</div>
+      <div class="api">
+        <span class="small">Серверный logout не нужен (stateless JWT).</span>
+        <div class="small">В roadmap — refresh-token revocation list.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- INTEGRATION NOTES -->
+<section class="scenario">
+  <header>
+    <span class="badge">Гайд</span>
+    <h2>Что нужно агенту интеграции iOS</h2>
+  </header>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div>
+      <h3 style="color:var(--accent-soft);margin-bottom:8px">Базовое</h3>
+      <ul class="bullet-list">
+        <li>JWT хранить в Keychain (`kSecClassGenericPassword`), не в UserDefaults.</li>
+        <li>Bearer header на каждый authed-запрос.</li>
+        <li>URLSession interceptor: на 401 → удалить токен → redirect /login.</li>
+        <li>Pre-flight CORS — не наш кейс (нативное приложение), но если будет WKWebView для рендера — обращаемся напрямую к сокету, без CORS.</li>
+      </ul>
+      <h3 style="color:var(--accent-soft);margin:20px 0 8px">Polling</h3>
+      <ul class="bullet-list">
+        <li>После upload → polling `GET /books/{id}` каждые 1с.</li>
+        <li>Стоп условие: `status="ready"` (для CTA "Читать") и/или `markupStatus="ready"` (для CTA "Словарь").</li>
+        <li>Терминальное: `status="failed"` или `markupStatus="failed"` → показать error-экран.</li>
+        <li>Timeout polling'а — 60с. Дальше — toast "обновим позже".</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="color:var(--accent-soft);margin-bottom:8px">Reader / pages</h3>
+      <ul class="bullet-list">
+        <li>`xhtml` — raw spine document, рендерить в `WKWebView` с `configuration.preferences.javaScriptEnabled = false` и `navigationDelegate` который запрещает любую навигацию.</li>
+        <li>Кастомный CSS поверх (typography, dark mode, размер шрифта) — инжектится через `userContentController`.</li>
+        <li>prevIdx/nextIdx === null → disable swipe в эту сторону.</li>
+      </ul>
+      <h3 style="color:var(--accent-soft);margin:20px 0 8px">Прогресс</h3>
+      <ul class="bullet-list">
+        <li>PATCH `/progress` с debounce 1-2 секунды после последнего перелистывания.</li>
+        <li>На background/foreground — flush pending PATCH сразу.</li>
+        <li>`updatedAt` хранить локально; при multi-device конфликте — last-write-wins по `updatedAt`.</li>
+      </ul>
+      <h3 style="color:var(--accent-soft);margin:20px 0 8px">Кэш</h3>
+      <ul class="bullet-list">
+        <li>BookSummary в SQLite/Core Data — offline-доступ к библиотеке.</li>
+        <li>Pages в файловом кэше — после первого чтения не лезть в API.</li>
+        <li>Vocabulary иммутабелен на (bookId, markupStatus=ready) → кэшировать "навсегда".</li>
+      </ul>
+    </div>
+  </div>
+  <div class="kv" style="margin-top:24px">
+    <span class="pill">openapi.yaml → openapi-generator-cli → Swift TypeScript-style client</span>
+    <span class="pill ok">happy-path.sh ≈ ваш acceptance-тест</span>
+    <span class="pill warn">CORS не нужен для нативного iOS, нужен для WebView с другого origin</span>
+    <span class="pill err">Без refresh-tokens юзер ре-login'ится каждый час</span>
+  </div>
+</section>
+
+<footer style="max-width:1280px;margin:48px auto 0;text-align:center;color:var(--muted);font-size:12px">
+  Plum Reader · iOS user flows · сгенерировано вместе с PR #11<br/>
+  <a href="../api/README.md">docs/api/README.md</a> · <a href="../api/openapi.yaml">openapi.yaml</a> · <a href="./sample-output.txt">sample-output.txt</a>
+</footer>
+
+</body>
+</html>
