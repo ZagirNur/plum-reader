@@ -2,7 +2,6 @@ package com.plum.reader.markup
 
 import com.plum.reader.auth.JwtPrincipal
 import com.plum.reader.books.BookNotFoundException
-import com.plum.reader.books.BookNotReadyException
 import com.plum.reader.books.UserBookRepository
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
@@ -38,18 +37,20 @@ class VocabularyController(
     ): VocabularyResponse {
         val entry = userBooks.getForUser(principal.userId, id) ?: throw BookNotFoundException(id)
         if (entry.book.markupStatus != MarkupStatus.READY.value) {
-            // Re-use book_not_ready code; details.status distinguishes which pipeline is pending.
-            throw BookNotReadyException(id, "markup:${entry.book.markupStatus}")
+            throw MarkupNotReadyException(id, entry.book.markupStatus)
         }
+        val offsetSan = offset.coerceAtLeast(0)
         val cappedLimit = limit.coerceIn(1, MAX_LIMIT)
-        val rows = words.topByBook(entry.book.id, cappedLimit, offset.coerceAtLeast(0))
+        val rows = words.topByBook(entry.book.id, cappedLimit, offsetSan)
         val total = words.countByBook(entry.book.id)
         return VocabularyResponse(
             bookId = entry.book.id,
             total = total,
-            offset = offset.coerceAtLeast(0),
+            offset = offsetSan,
             limit = cappedLimit,
-            items = rows.map { WordEntry(word = it.word, frequency = it.frequency) },
+            items = rows.mapIndexed { i, row ->
+                WordEntry(word = row.word, frequency = row.frequency, rank = offsetSan + i + 1)
+            },
         )
     }
 
@@ -62,11 +63,12 @@ class VocabularyController(
     ): WordEntry {
         val entry = userBooks.getForUser(principal.userId, id) ?: throw BookNotFoundException(id)
         if (entry.book.markupStatus != MarkupStatus.READY.value) {
-            throw BookNotReadyException(id, "markup:${entry.book.markupStatus}")
+            throw MarkupNotReadyException(id, entry.book.markupStatus)
         }
         val row = words.findOne(entry.book.id, word)
             ?: throw WordNotFoundException(id, word.lowercase())
-        return WordEntry(word = row.word, frequency = row.frequency)
+        // Single-word lookups don't expose a rank — clients use /vocabulary for ranking.
+        return WordEntry(word = row.word, frequency = row.frequency, rank = null)
     }
 
     companion object {
@@ -82,7 +84,15 @@ data class VocabularyResponse(
     val items: List<WordEntry>,
 )
 
-data class WordEntry(val word: String, val frequency: Int)
+data class WordEntry(
+    val word: String,
+    val frequency: Int,
+    /** 1-based position in the top-frequency listing. null for single-word lookups. */
+    val rank: Int?,
+)
 
 class WordNotFoundException(val bookId: Long, val word: String) :
     RuntimeException("word '$word' not found in book $bookId")
+
+class MarkupNotReadyException(val bookId: Long, val markupStatus: String) :
+    RuntimeException("book $bookId markup is $markupStatus; wait for markup_status=ready")

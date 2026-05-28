@@ -9,6 +9,7 @@ import com.plum.reader.books.InvalidEpubException
 import com.plum.reader.books.InvalidProgressException
 import com.plum.reader.books.PageNotFoundException
 import com.plum.reader.books.UnsupportedFileException
+import com.plum.reader.markup.MarkupNotReadyException
 import com.plum.reader.markup.WordNotFoundException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -113,6 +114,16 @@ class GlobalExceptionHandler {
             ErrorResponse(
                 error = "word_not_found",
                 message = "word '${ex.word}' not found in book ${ex.bookId}",
+            ),
+        )
+
+    @ExceptionHandler(MarkupNotReadyException::class)
+    fun handleMarkupNotReady(ex: MarkupNotReadyException): ResponseEntity<ErrorResponse> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(
+            ErrorResponse(
+                error = "markup_not_ready",
+                message = "book ${ex.bookId} markup is ${ex.markupStatus}",
+                details = mapOf("markupStatus" to ex.markupStatus),
             ),
         )
 }

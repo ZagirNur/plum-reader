@@ -51,19 +51,20 @@ class MarkupWorker(
         try {
             tx.executeWithoutResult { books.updateMarkupStatus(book.id, MarkupStatus.PROCESSING) }
 
-            val indexes = pages.listIdsByBook(book.id)
-            if (indexes.isEmpty()) {
-                terminalFail(job, book.id, "no pages to markup (book not split yet)")
-                return
-            }
             val freq = HashMap<String, Int>()
-            for (idx in indexes) {
-                val p = pages.findByBookAndIdx(book.id, idx) ?: continue
-                for ((w, c) in WordTokenizer.frequencyOf(p.xhtml)) {
+            var pageCount = 0
+            // Single SELECT, streaming ResultSet — no N+1, no full-book buffer.
+            pages.forEachXhtml(book.id) { xhtml ->
+                pageCount++
+                for ((w, c) in WordTokenizer.frequencyOf(xhtml)) {
                     freq.merge(w, c, Int::plus)
                 }
             }
-            log.info("markup.tokenized jobId={} bookId={} pages={} words={}", job.id, book.id, indexes.size, freq.size)
+            if (pageCount == 0) {
+                terminalFail(job, book.id, "no pages to markup (book not split yet)")
+                return
+            }
+            log.info("markup.tokenized jobId={} bookId={} pages={} words={}", job.id, book.id, pageCount, freq.size)
 
             tx.executeWithoutResult {
                 words.deleteByBook(book.id)

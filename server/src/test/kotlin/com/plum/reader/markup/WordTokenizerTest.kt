@@ -55,6 +55,25 @@ class WordTokenizerTest {
     }
 
     @Test
+    fun `curly apostrophes do not split words`() {
+        // U+2019 RIGHT SINGLE QUOTATION MARK is the typographically-correct
+        // apostrophe most EPUB publishers use. We must keep `don't` intact.
+        val out = WordTokenizer.tokenize("don’t ‘quoted’ it’s")
+        assertEquals(listOf("don’t", "quoted", "it’s"), out)
+    }
+
+    @Test
+    fun `html entities are decoded before splitting`() {
+        // &mdash; / &#x2014; should become "—" and act as a separator,
+        // NOT become a token "mdash" in the vocabulary.
+        val out = WordTokenizer.tokenize("Mr. Bennet&mdash;a witty father&#8212;said nothing.")
+        assertEquals(listOf("mr", "bennet", "witty", "father", "said", "nothing"), out)
+        // &amp; → "&" is a non-letter, splits.
+        val out2 = WordTokenizer.tokenize("Bread &amp; butter")
+        assertEquals(listOf("bread", "butter"), out2)
+    }
+
+    @Test
     fun `frequencyOf handles realistic xhtml chunk`() {
         val xhtml = """
             <html><body>
