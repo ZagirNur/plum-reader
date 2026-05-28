@@ -1,6 +1,12 @@
 spring:
   application:
     name: plum-reader
+  task:
+    scheduling:
+      # split worker + markup worker + stale-lock sweep run concurrently.
+      # Default = 1 would serialize them, so a long markup blocks the sweep.
+      pool:
+        size: ${PLUM_SCHEDULING_POOL_SIZE:3}
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/plum_reader}
     username: ${DB_USERNAME:plum}

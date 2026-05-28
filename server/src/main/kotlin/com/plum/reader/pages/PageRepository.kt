@@ -38,6 +38,25 @@ class PageRepository(private val jdbc: JdbcTemplate) {
             Int::class.java, bookId,
         )
 
+    /**
+     * Stream every page's xhtml without materializing the full list in memory.
+     * Used by the markup worker to walk 1000-page books with constant heap
+     * and a single round-trip — avoids N+1 lookups via `findByBookAndIdx`.
+     */
+    fun forEachXhtml(bookId: Long, consumer: (String) -> Unit) {
+        jdbc.query(
+            { conn ->
+                conn.prepareStatement(
+                    "SELECT xhtml FROM pages WHERE book_id = ? ORDER BY idx",
+                ).also { ps ->
+                    ps.setLong(1, bookId)
+                    ps.fetchSize = 50
+                }
+            },
+            { rs -> consumer(rs.getString("xhtml")) },
+        )
+    }
+
     private fun mapRow(rs: ResultSet): Page = Page(
         id = rs.getLong("id"),
         bookId = rs.getLong("book_id"),

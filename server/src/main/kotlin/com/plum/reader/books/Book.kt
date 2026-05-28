@@ -14,6 +14,7 @@ data class Book(
     val status: String,
     val pageCount: Int?,
     val error: String?,
+    val markupStatus: String,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
