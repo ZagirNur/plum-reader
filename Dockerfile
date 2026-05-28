@@ -26,6 +26,13 @@ WORKDIR /app
 
 # Non-root user.
 RUN useradd -r -u 1001 -m -d /app plum && chown -R plum:plum /app
+
+# Storage mount point: pre-create with the right ownership before declaring
+# it as VOLUME. Docker initializes named-volume permissions from the image
+# layer at first attach, so chown done here propagates to the empty volume.
+RUN mkdir -p /var/plum-storage && chown -R plum:plum /var/plum-storage
+VOLUME /var/plum-storage
+
 USER plum
 
 COPY --from=build --chown=plum:plum /workspace/server/build/libs/*.jar /app/plum-reader.jar
