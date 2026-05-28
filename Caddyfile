@@ -1,0 +1,44 @@
+# Caddyfile for Plum Reader.
+#
+# Caddy fetches a Let's Encrypt cert automatically using HTTP-01 challenge
+# on port 80 → then serves HTTPS on 443 (plus HTTP/3 on udp/443).
+#
+# Required env (passed via docker-compose):
+#   DOMAIN       — e.g. plum.zagirnur.dev
+#   ACME_EMAIL   — for Let's Encrypt notifications
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Spring Boot is at server:8080 inside the docker network.
+	reverse_proxy server:8080 {
+		# Pass real client IP and protocol to the app.
+		header_up X-Real-IP {http.request.remote.host}
+		header_up X-Forwarded-Proto {scheme}
+		health_uri /api/v1/health
+		health_interval 30s
+	}
+
+	# Security headers (sensible defaults for an API).
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer-when-downgrade"
+		# Caddy already sends X-Frame-Options + X-XSS-Protection for HTML
+		# responses; Spring Security already adds these on its end too.
+	}
+
+	# Cap upload body to the same 50 MB as Spring's multipart limit.
+	request_body {
+		max_size 50MB
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

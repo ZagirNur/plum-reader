@@ -1,0 +1,87 @@
+# Production compose for Plum Reader.
+#
+# Stack:
+#   * postgres  — DB, ports private to the docker network
+#   * server    — Spring Boot app, talks to postgres
+#   * caddy     — reverse proxy with automatic Let's Encrypt
+#
+# Bring up:
+#   cp .env.prod.example .env && edit secrets
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Caddy will obtain a TLS cert automatically on first request to
+# https://plum.zagirnur.dev/ if the DNS A record points here.
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: plum-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-plum_reader}
+      POSTGRES_USER: ${POSTGRES_USER:-plum}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-plum} -d $${POSTGRES_DB:-plum_reader}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [internal]
+
+  server:
+    image: plum-reader-server:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: plum-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # DB
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-plum_reader}
+      DB_USERNAME: ${POSTGRES_USER:-plum}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # JWT
+      PLUM_JWT_SECRET: ${PLUM_JWT_SECRET:?PLUM_JWT_SECRET required (>=32 bytes)}
+      PLUM_JWT_EXPIRATION_MINUTES: ${PLUM_JWT_EXPIRATION_MINUTES:-60}
+      # CORS — allow your frontend origins (comma-separated)
+      PLUM_CORS_ALLOWED_ORIGINS: ${PLUM_CORS_ALLOWED_ORIGINS:-}
+      # Storage (mounted volume below)
+      PLUM_STORAGE_ROOT: /var/plum-storage
+      # Spring profile
+      SPRING_PROFILES_ACTIVE: prod
+    volumes:
+      - plum-storage:/var/plum-storage
+    networks: [internal]
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: plum-caddy
+    restart: unless-stopped
+    depends_on: [server]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL required for Let's Encrypt}
+      DOMAIN: ${DOMAIN:?DOMAIN required, e.g. plum.zagirnur.dev}
+    networks: [internal]
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  plum-storage:
+  caddy-data:
+  caddy-config:

@@ -1,0 +1,39 @@
+# Production profile.
+# Activated via SPRING_PROFILES_ACTIVE=prod.
+
+server:
+  port: 8080
+  # Caddy already speaks HTTPS to the public; we trust X-Forwarded-* from it.
+  forward-headers-strategy: native
+  tomcat:
+    accesslog:
+      enabled: false   # Caddy is the access log
+  shutdown: graceful
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+logging:
+  level:
+    root: INFO
+    com.plum.reader: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%X{traceId:-}] %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

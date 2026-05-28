@@ -49,3 +49,6 @@ data/
 
 # Local blob storage (LocalFileStorageService default root: server/var/storage)
 var/
+
+# Claude Code session files
+.claude/
