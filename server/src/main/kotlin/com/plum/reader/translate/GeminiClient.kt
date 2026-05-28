@@ -1,8 +1,8 @@
 package com.plum.reader.translate
 
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import java.net.URI
@@ -57,7 +57,7 @@ class GeminiClient(
                 providerStatus = res.statusCode(),
             )
         }
-        val parsed: GeminiResponse = mapper.readValue(res.body())
+        val parsed: GeminiResponse = mapper.readValue(res.body(), GeminiResponse::class.java)
         val text = parsed.candidates.firstOrNull()
             ?.content?.parts?.firstOrNull()?.text
             ?.trim()
