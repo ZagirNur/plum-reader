@@ -1,0 +1,164 @@
+== 1. Register ==
+got token: 192 chars
+
+== 2. /me ==
+{
+  "id": 22,
+  "email": "demo1779947059@plum.test",
+  "name": "Demo"
+}
+
+== 3. Upload '/tmp/epubs/pride.epub' ==
+{
+  "book": {
+    "id": 46,
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "language": "en",
+    "status": "uploaded",
+    "sizeBytes": 24847035,
+    "sha256": "b5474c240cee3d35ff3cdaba21ccd6cec70837a171625fe07e3ec15fb233f77b",
+    "pageCount": null,
+    "createdAt": "2026-05-28T05:44:22.457943Z",
+    "updatedAt": "2026-05-28T05:44:22.457943Z"
+  },
+  "deduplicated": false,
+  "jobId": 14
+}
+→ bookId=46 jobId=14 deduplicated=false
+
+== 4. Wait for split + markup ==
+t+1s  status=uploaded  markupStatus=pending
+t+2s  status=ready  markupStatus=pending
+t+3s  status=ready  markupStatus=pending
+t+4s  status=ready  markupStatus=ready
+
+== 5. Library ==
+{
+  "items": [
+    {
+      "id": 46,
+      "title": "Pride and Prejudice",
+      "author": "Jane Austen",
+      "language": "en",
+      "status": "ready",
+      "markupStatus": "ready",
+      "pageCount": 17,
+      "lastPageIdx": null,
+      "addedAt": "2026-05-28T05:44:22.457943Z",
+      "updatedAt": "2026-05-28T05:44:25.118719Z"
+    }
+  ],
+  "more": false
+}
+
+== 6. Page list ==
+{
+  "bookId": 46,
+  "total": 17,
+  "indexes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16
+  ]
+}
+
+== 7. First page (truncated) ==
+{
+  "bookId": 46,
+  "idx": 0,
+  "total": 17,
+  "textLen": 7,
+  "prevIdx": null,
+  "nextIdx": 1,
+  "xhtml": "<?xml version=\"1.0\"?><!DOCTYPE html PUBLIC '-//W3C//DTD XHTML 1.1//EN' 'http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd'>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\">\n  <head>\n    <title>\"Cover\"</title>\n    <link href=\"pgepub.css\" rel=\"stylesheet\"/>\n  </head>\n  <body>\n    <div style=\"text-alig…"
+}
+
+== 8. Save progress at page 5 ==
+{
+  "bookId": 46,
+  "lastPageIdx": 5,
+  "updatedAt": "2026-05-28T05:44:25.728158963Z"
+}
+
+== 9. Top 10 vocabulary ==
+{
+  "bookId": 46,
+  "total": 7083,
+  "offset": 0,
+  "limit": 10,
+  "items": [
+    {
+      "word": "the",
+      "frequency": 4843,
+      "rank": 1
+    },
+    {
+      "word": "to",
+      "frequency": 4405,
+      "rank": 2
+    },
+    {
+      "word": "of",
+      "frequency": 3965,
+      "rank": 3
+    },
+    {
+      "word": "and",
+      "frequency": 3853,
+      "rank": 4
+    },
+    {
+      "word": "her",
+      "frequency": 2284,
+      "rank": 5
+    },
+    {
+      "word": "in",
+      "frequency": 2052,
+      "rank": 6
+    },
+    {
+      "word": "was",
+      "frequency": 1878,
+      "rank": 7
+    },
+    {
+      "word": "she",
+      "frequency": 1751,
+      "rank": 8
+    },
+    {
+      "word": "that",
+      "frequency": 1661,
+      "rank": 9
+    },
+    {
+      "word": "it",
+      "frequency": 1603,
+      "rank": 10
+    }
+  ]
+}
+
+== 10. Specific words ==
+  elizabeth → {"word":"elizabeth","frequency":596,"rank":null}
+  darcy → {"word":"darcy","frequency":385,"rank":null}
+  bennet → {"word":"bennet","frequency":309,"rank":null}
+  wickham → {"word":"wickham","frequency":168,"rank":null}
+
+== Done. ==
